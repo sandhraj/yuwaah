@@ -6,6 +6,8 @@ interface SidebarProps {
   status: GSStatus;
   lastRefresh: Date | null;
   onRefresh: () => void;
+  mobileOpen: boolean;
+  onClose: () => void;
 }
 
 const navItems: { key: NavTab; icon: string; label: string; section: string }[] = [
@@ -16,7 +18,7 @@ const navItems: { key: NavTab; icon: string; label: string; section: string }[] 
   { key: 'matching', icon: '🔗', label: 'Employer matching', section: 'Employers' },
 ];
 
-export function Sidebar({ navTab, setNavTab, status, lastRefresh, onRefresh }: SidebarProps) {
+export function Sidebar({ navTab, setNavTab, status, lastRefresh, onRefresh, mobileOpen, onClose }: SidebarProps) {
   const sections = ['Programme', 'Team', 'Employers'];
 
   const statusText =
@@ -41,7 +43,25 @@ export function Sidebar({ navTab, setNavTab, status, lastRefresh, onRefresh }: S
       : 'bg-white/5 text-white/40';
 
   return (
-    <aside className="bg-[#070F1C] flex flex-col sticky top-0 h-screen overflow-hidden border-r border-[#0F1E36]">
+    <aside
+      className={[
+        'bg-[#070F1C] flex flex-col h-screen overflow-hidden border-r border-[#0F1E36]',
+        // mobile: fixed overlay, slides in/out
+        'fixed top-0 left-0 w-[220px] z-30 transition-transform duration-200 ease-in-out',
+        // desktop: sticky in grid flow
+        'md:sticky md:z-auto md:translate-x-0',
+        mobileOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full',
+      ].join(' ')}
+    >
+      {/* Mobile close button */}
+      <button
+        className="md:hidden absolute top-3.5 right-3 p-1.5 text-white/40 hover:text-white/70 leading-none cursor-pointer border-none bg-transparent"
+        onClick={onClose}
+        aria-label="Close navigation"
+      >
+        ✕
+      </button>
+
       <div className="px-5 py-6 border-b border-white/[0.08]">
         <div className="text-[15px] font-semibold text-white leading-tight">YuWaah Dashboard</div>
         <div className="text-[11px] text-white/45 mt-0.5">Sambhav Foundation · Migration Support</div>
@@ -58,7 +78,7 @@ export function Sidebar({ navTab, setNavTab, status, lastRefresh, onRefresh }: S
               .map((item) => (
                 <button
                   key={item.key}
-                  onClick={() => setNavTab(item.key)}
+                  onClick={() => { setNavTab(item.key); onClose(); }}
                   className={`flex items-center gap-2.5 w-full px-2.5 py-2 rounded-md text-[13px] font-normal border-none cursor-pointer transition-all duration-150 text-left ${
                     navTab === item.key
                       ? 'bg-[#E8601C] text-white font-medium'

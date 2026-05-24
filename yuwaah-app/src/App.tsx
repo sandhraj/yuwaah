@@ -40,6 +40,14 @@ const PAGE_TITLES: Record<NavTab, string> = {
   matching: 'Employer Matching',
 };
 
+// Shorter labels for narrow screens
+const STATE_TABS: { value: StateView; label: string; shortLabel: string }[] = [
+  { value: 'all', label: 'All States', shortLabel: 'All' },
+  { value: 'rj', label: 'Rajasthan → Delhi NCR', shortLabel: 'Rajasthan' },
+  { value: 'od', label: 'Odisha → Bengaluru', shortLabel: 'Odisha' },
+  { value: 'jh', label: 'Jharkhand → Bengaluru', shortLabel: 'Jharkhand' },
+];
+
 export default function App() {
   const { data, status, lastRefresh, debugLog, fetchAllSheets } = useSheets();
   const [navTab, setNavTab] = useState<NavTab>('funnel');
@@ -49,6 +57,7 @@ export default function App() {
   const [showDebug, setShowDebug] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
   const [localState, setLocalState] = useState<LocalState>(loadLocalState);
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => { fetchAllSheets(); }, [fetchAllSheets]);
 
@@ -120,38 +129,62 @@ export default function App() {
     },
   ];
 
-  const stateTabs: { value: StateView; label: string }[] = [
-    { value: 'all', label: 'All States' },
-    { value: 'rj', label: 'Rajasthan → Delhi NCR' },
-    { value: 'od', label: 'Odisha → Bengaluru' },
-    { value: 'jh', label: 'Jharkhand → Bengaluru' },
-  ];
-
   return (
-    <div className="grid grid-cols-[220px_1fr] min-h-screen">
+    // On mobile: single-column block layout (sidebar overlays via fixed position)
+    // On md+: 2-column grid with sticky sidebar
+    <div className="min-h-screen md:grid md:grid-cols-[220px_1fr]">
+
+      {/* Mobile backdrop — tap to close sidebar */}
+      {mobileMenuOpen && (
+        <div
+          className="fixed inset-0 bg-black/60 z-20 md:hidden"
+          onClick={() => setMobileMenuOpen(false)}
+        />
+      )}
+
       <Sidebar
         navTab={navTab}
         setNavTab={setNavTab}
         status={status}
         lastRefresh={lastRefresh}
         onRefresh={fetchAllSheets}
+        mobileOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
       />
 
-      <main className="p-5 px-6 max-w-none overflow-x-auto">
-        <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
-          <div>
-            <div className="text-[22px] font-semibold text-text tracking-tight">{PAGE_TITLES[navTab]}</div>
-            <div className="text-[13px] text-text-2 mt-1">YuWaah Migration Support Program · Sambhav Foundation</div>
+      <main className="p-4 px-4 md:p-5 md:px-6 max-w-none overflow-x-hidden">
+
+        {/* Page header */}
+        <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
+          <div className="flex items-center gap-3 min-w-0">
+            {/* Hamburger — mobile only */}
+            <button
+              className="md:hidden btn btn-sm px-2 flex-shrink-0"
+              onClick={() => setMobileMenuOpen(true)}
+              aria-label="Open navigation"
+            >
+              <span className="text-base leading-none">☰</span>
+            </button>
+            <div className="min-w-0">
+              <div className="text-[20px] md:text-[22px] font-semibold text-text tracking-tight leading-tight">
+                {PAGE_TITLES[navTab]}
+              </div>
+              <div className="text-[11px] text-text-2 mt-0.5 hidden sm:block">
+                YuWaah Migration Support Program · Sambhav Foundation
+              </div>
+            </div>
           </div>
-          <div className="flex gap-2 items-center flex-wrap">
-            <button className="btn btn-sm" onClick={() => setShowDebug((v) => !v)}>🔍 Debug</button>
+          <div className="flex gap-2 items-center flex-shrink-0">
+            <button className="btn btn-sm hidden md:inline-flex" onClick={() => setShowDebug((v) => !v)}>
+              🔍 Debug
+            </button>
             <a
               href={`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`}
               target="_blank"
               rel="noreferrer"
               className="btn btn-sm"
             >
-              📊 Open Sheet ↗
+              📊<span className="hidden sm:inline"> Open Sheet</span> ↗
             </a>
           </div>
         </div>
@@ -160,18 +193,20 @@ export default function App() {
           <div className="debug-panel mb-3">{debugLog.join('\n') || 'No debug info yet.'}</div>
         )}
 
-        <div className="flex gap-1.5 mb-6 flex-wrap">
-          {stateTabs.map((t) => (
+        {/* State filter tabs — short labels on mobile, full on sm+ */}
+        <div className="flex gap-1.5 mb-5 flex-wrap">
+          {STATE_TABS.map((t) => (
             <button
               key={t.value}
               onClick={() => setView(t.value)}
-              className={`px-4 py-1.5 rounded-full border text-xs cursor-pointer font-sans transition-all duration-150 ${
+              className={`px-3 py-1.5 rounded-full border text-xs cursor-pointer font-sans transition-all duration-150 ${
                 view === t.value
                   ? 'bg-orange text-white border-orange font-medium'
                   : 'bg-bg-3 border-border text-text-2 hover:border-orange hover:text-orange'
               }`}
             >
-              {t.label}
+              <span className="sm:hidden">{t.shortLabel}</span>
+              <span className="hidden sm:inline">{t.label}</span>
             </button>
           ))}
         </div>
