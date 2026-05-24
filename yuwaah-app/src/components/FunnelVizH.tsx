@@ -86,6 +86,12 @@ function makePath(bds: number[][], xs: number[], k: number): string {
   return d + ' Z';
 }
 
+function fmtBandNum(v: number): string {
+  if (v >= 10000) return Math.round(v / 1000) + 'k';
+  if (v >= 1000) return (Math.round(v / 100) / 10) + 'k';
+  return String(v);
+}
+
 function convColor(cr: ConvRate, mode: string): string {
   if (mode === 'planning' || cr.actual == null) return '#3D5678';
   if (cr.planned == null) return '#7B96B8';
@@ -172,6 +178,30 @@ export function FunnelVizH({ stageDefs, bands, convRates, mode }: FunnelVizHProp
             />
           );
         })}
+
+        {/* Per-band numbers inside each band segment — only when multiple bands */}
+        {bands.length > 1 && stageDefs.map((_, i) =>
+          bands.map((b, k) => {
+            const val = b.stages[i];
+            if (val == null || val === 0) return null;
+            const midY = (bds[i][k] + bds[i][k + 1]) / 2;
+            const bandH = bds[i][k + 1] - bds[i][k];
+            if (bandH < 11) return null;
+            return (
+              <text
+                key={`${b.id}_${i}_v`}
+                x={xs[i]}
+                y={midY + 3.5}
+                textAnchor="middle"
+                fontSize="8.5"
+                fontWeight="700"
+                fill="rgba(255,255,255,0.88)"
+              >
+                {fmtBandNum(val)}
+              </text>
+            );
+          })
+        )}
 
         {/* Conversion rate labels — staggered above bands */}
         {convRates.map((cr, i) => {
