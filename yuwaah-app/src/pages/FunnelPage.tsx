@@ -1,6 +1,7 @@
 import type { DataState, FunnelMode } from '../types';
 import { STAGE_DEFS, CONV_ORDER, SHEET_ID } from '../constants';
-import { getFunnelPlanned, calcConv, convClass } from '../utils';
+import { getFunnelPlanned, calcConv } from '../utils';
+import { FunnelViz } from '../components/FunnelViz';
 
 interface FunnelPageProps {
   data: DataState;
@@ -76,6 +77,16 @@ export function FunnelPage({ data, view, funnelMode, setFunnelMode, gsStatus }: 
     </div>
   );
 
+  const plannedStages = STAGE_DEFS.map((s, i) => ({
+    key: s.key,
+    label: s.label,
+    value: fp[i],
+    convPlanned: i > 0 ? data.conv[CONV_ORDER[i - 1]] : null,
+    dropCount: i > 0 ? fp[i - 1] - fp[i] : null,
+    nudge: s.nudge,
+    maybe: s.maybe,
+  }));
+
   if (funnelMode === 'planning') {
     return (
       <div className="card">
@@ -84,27 +95,7 @@ export function FunnelPage({ data, view, funnelMode, setFunnelMode, gsStatus }: 
         <div className="bg-amber-bg border-l-4 border-nudge-border px-3 py-2 rounded-r text-[11px] text-amber-custom mb-3.5">
           Planning view — projections based on planned conversion ratios. Switch to Actuals to see live performance.
         </div>
-        <div className="funnel-scroll">
-          <div className="funnel">
-            {STAGE_DEFS.map((s, i) => {
-              const n = fp[i];
-              const pct = i > 0 ? data.conv[CONV_ORDER[i - 1]] : null;
-              const drop = i > 0 ? fp[i - 1] - n : 0;
-              return (
-                <div key={s.key} className={`fstage${s.nudge ? ' nudge' : s.maybe ? ' maybe' : ''}`}>
-                  <div className="fn">{n.toLocaleString()}</div>
-                  <div className="fl">{s.label}</div>
-                  {pct !== null && (
-                    <div className="fc" style={{ color: '#E8601C' }}>{pct}% planned</div>
-                  )}
-                  {s.nudge && <div className="mt-0.5"><span className="badge badge-nudge">Nudgebay</span></div>}
-                  {s.maybe && <div className="mt-0.5"><span className="badge badge-maybe">Maybe</span></div>}
-                  {i > 0 && <div className="fdrop">▼{drop.toLocaleString()}</div>}
-                </div>
-              );
-            })}
-          </div>
-        </div>
+        <FunnelViz stages={plannedStages} mode="planning" />
       </div>
     );
   }
@@ -154,49 +145,36 @@ export function FunnelPage({ data, view, funnelMode, setFunnelMode, gsStatus }: 
         </div>
       </div>
 
-      <div className="flex gap-2 flex-wrap items-center mb-2.5 text-[11px] text-text-2">
+      <div className="flex gap-2 flex-wrap items-center mb-3 text-[11px] text-text-2">
         <span className="pill pill-good">On/above plan</span>
-        <span className="pill pill-warn">Within 20%</span>
+        <span className="pill pill-warn">Within 20% of plan</span>
         <span className="pill pill-bad">Below plan</span>
         <span className="pill pill-pos">+pp above plan</span>
         <span className="pill pill-neg">−pp below plan</span>
       </div>
 
-      <div className="funnel-scroll">
-        <div className="funnel">
-          {STAGE_DEFS.map((s, i) => {
-            const an = act[s.key] as number | null;
-            const prev = i > 0 ? act[STAGE_DEFS[i - 1].key] as number | null : null;
-            const acp = i > 0 ? calcConv(act as Record<string, number | null>, STAGE_DEFS[i - 1].key, s.key) : null;
-            const pcp = i > 0 ? data.conv[CONV_ORDER[i - 1]] : null;
-            const v = acp != null && pcp != null ? acp - pcp : null;
-            const cc = acp != null ? convClass(acp, pcp || 0) : 'pill-na';
-            const flag = v != null ? (v >= -5 ? '' : v >= -15 ? ' flag-amber' : ' flag-red') : '';
-            const drop = an != null && prev != null ? prev - an : null;
-            return (
-              <div key={s.key} className={`fstage${s.nudge ? ' nudge' : s.maybe ? ' maybe' : ''}${flag}`}>
-                <div className="fn">{an != null ? Number(an).toLocaleString() : '—'}</div>
-                <div className="fl">{s.label}</div>
-                {acp != null ? (
-                  <div className="mt-0.5"><span className={`pill ${cc}`} style={{ fontSize: 8 }}>{acp}%</span></div>
-                ) : i > 0 ? (
-                  <div className="mt-0.5"><span className="pill pill-na" style={{ fontSize: 8 }}>no data</span></div>
-                ) : null}
-                {v != null && (
-                  <div className="mt-0.5">
-                    <span className={`pill ${v >= 0 ? 'pill-pos' : v >= -10 ? 'pill-zero' : 'pill-neg'}`} style={{ fontSize: 7 }}>
-                      {v >= 0 ? '+' : ''}{v}pp
-                    </span>
-                  </div>
-                )}
-                {s.nudge && <div className="mt-0.5"><span className="badge badge-nudge">Nudgebay</span></div>}
-                {s.maybe && <div className="mt-0.5"><span className="badge badge-maybe">Maybe</span></div>}
-                {drop != null && <div className="fdrop">▼{drop.toLocaleString()}</div>}
-              </div>
-            );
-          })}
-        </div>
-      </div>
+      <FunnelViz
+        stages={STAGE_DEFS.map((s, i) => {
+          const an = act[s.key] as number | null;
+          const prev = i > 0 ? act[STAGE_DEFS[i - 1].key] as number | null : null;
+          const acp = i > 0 ? calcConv(act as Record<string, number | null>, STAGE_DEFS[i - 1].key, s.key) : null;
+          const pcp = i > 0 ? data.conv[CONV_ORDER[i - 1]] : null;
+          const v = acp != null && pcp != null ? acp - pcp : null;
+          const drop = an != null && prev != null ? prev - an : null;
+          return {
+            key: s.key,
+            label: s.label,
+            value: an,
+            convActual: acp,
+            convPlanned: pcp,
+            variance: v,
+            dropCount: drop,
+            nudge: s.nudge,
+            maybe: s.maybe,
+          };
+        })}
+        mode="actuals"
+      />
 
       <div className="mt-5">
         <div className="card-title">State-wise breakdown</div>
