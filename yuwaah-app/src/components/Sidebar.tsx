@@ -41,7 +41,7 @@ export function Sidebar({ navTab, setNavTab, status, lastRefresh, onRefresh }: S
       : 'bg-white/5 text-white/40';
 
   return (
-    <aside className="bg-[#1A1A18] flex flex-col sticky top-0 h-screen overflow-hidden">
+    <aside className="bg-[#070F1C] flex flex-col sticky top-0 h-screen overflow-hidden border-r border-[#0F1E36]">
       <div className="px-5 py-6 border-b border-white/[0.08]">
         <div className="text-[15px] font-semibold text-white leading-tight">YuWaah Dashboard</div>
         <div className="text-[11px] text-white/45 mt-0.5">Sambhav Foundation · Migration Support</div>

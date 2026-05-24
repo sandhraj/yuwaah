@@ -168,7 +168,7 @@ export default function App() {
               className={`px-4 py-1.5 rounded-full border text-xs cursor-pointer font-sans transition-all duration-150 ${
                 view === t.value
                   ? 'bg-orange text-white border-orange font-medium'
-                  : 'bg-white border-border-2 text-text-2 hover:border-orange hover:text-orange'
+                  : 'bg-bg-3 border-border text-text-2 hover:border-orange hover:text-orange'
               }`}
             >
               {t.label}
