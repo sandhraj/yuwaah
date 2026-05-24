@@ -114,7 +114,30 @@ export function FunnelVizH({ stageDefs, bands, convRates, mode }: FunnelVizHProp
   const totals = stageDefs.map((_, i) => bands.reduce((s, b) => s + (b.stages[i] ?? 0), 0));
 
   return (
-    <div style={{ overflowX: 'auto' }}>
+    <div>
+      {/* Legend — top right, above chart */}
+      {bands.length > 1 && (
+        <div
+          style={{
+            display: 'flex',
+            gap: 16,
+            justifyContent: 'flex-end',
+            marginBottom: 6,
+            flexWrap: 'wrap',
+          }}
+        >
+          {bands.map(b => (
+            <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              <div
+                style={{ width: 20, height: 7, borderRadius: 3, background: b.color, opacity: 0.85 }}
+              />
+              <span style={{ fontSize: 10, color: '#7B96B8' }}>{b.label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div style={{ overflowX: 'auto' }}>
       <svg
         viewBox={`0 0 ${VBW} ${VBH}`}
         style={{ minWidth: 680, width: '100%', display: 'block' }}
@@ -162,7 +185,7 @@ export function FunnelVizH({ stageDefs, bands, convRates, mode }: FunnelVizHProp
               x={midX}
               y={ly}
               textAnchor="middle"
-              fontSize="8.5"
+              fontSize="10"
               fontWeight="600"
               fill={convColor(cr, mode)}
             >
@@ -193,41 +216,21 @@ export function FunnelVizH({ stageDefs, bands, convRates, mode }: FunnelVizHProp
             x={xs[i]}
             y={NM_Y}
             textAnchor="middle"
-            fontSize="7.5"
-            fill="#3D5678"
+            fontSize="10"
+            fill="#8BADC8"
           >
             {SHORT[s.label] ?? s.label}
           </text>
         ))}
       </svg>
+      </div>
 
-      {/* State legend */}
-      {bands.length > 1 && (
-        <div
-          style={{
-            display: 'flex',
-            gap: 20,
-            justifyContent: 'center',
-            marginTop: 6,
-            flexWrap: 'wrap',
-          }}
-        >
-          {bands.map(b => (
-            <div key={b.id} style={{ display: 'flex', alignItems: 'center', gap: 7 }}>
-              <div
-                style={{
-                  width: 24,
-                  height: 8,
-                  borderRadius: 3,
-                  background: b.color,
-                  opacity: 0.85,
-                }}
-              />
-              <span style={{ fontSize: 10, color: '#7B96B8' }}>{b.label}</span>
-            </div>
-          ))}
-        </div>
-      )}
+      {/* Caption explaining the staggered % labels */}
+      <div style={{ textAlign: 'center', fontSize: 10, color: '#3D5678', marginTop: 5 }}>
+        ↑ step-to-step conversion rate between stages
+        {' · '}
+        {bands[0]?.id === 'planned' ? 'planned rate' : 'actual rate vs plan (green ≥ plan · amber within 20% · red below)'}
+      </div>
     </div>
   );
 }

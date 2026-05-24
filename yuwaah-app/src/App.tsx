@@ -100,7 +100,7 @@ export default function App() {
       label: 'Actual leads',
       value: al != null ? Number(al).toLocaleString() : '—',
       sub: 'from tracker',
-      color: al ? '#1A1A18' : '#9B9B98',
+      color: al ? undefined : '#4D6A88',
     },
     {
       label: 'Actual migrations',
@@ -109,9 +109,9 @@ export default function App() {
       color: am != null ? (am >= target ? '#0F6E56' : '#E8601C') : '#9B9B98',
     },
     {
-      label: 'End-to-end conv.',
+      label: 'Lead → join rate',
       value: oac ? oac + '%' : '—',
-      sub: 'lead → join (actual)',
+      sub: 'end-to-end actual',
     },
     {
       label: 'Employer matches',
@@ -137,7 +137,7 @@ export default function App() {
         onRefresh={fetchAllSheets}
       />
 
-      <main className="p-7 px-8 max-w-[1200px]">
+      <main className="p-5 px-6 max-w-none overflow-x-auto">
         <div className="flex items-start justify-between mb-6 gap-4 flex-wrap">
           <div>
             <div className="text-[22px] font-semibold text-text tracking-tight">{PAGE_TITLES[navTab]}</div>

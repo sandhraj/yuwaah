@@ -186,7 +186,7 @@ export function FunnelPage({ data, view, funnelMode, setFunnelMode, gsStatus }: 
           {gap != null ? (gap <= 0 ? '✓ on track' : `−${gap} short`) : '—'}
         </td>
         <td className="text-right">{conv}</td>
-        <td className="text-text-3 text-[10px]">{String(a.last_updated || '—')}</td>
+        <td className="text-text-3 text-[10px] pl-4 whitespace-nowrap">{String(a.last_updated || '—')}</td>
       </tr>
     );
   });
@@ -198,27 +198,27 @@ export function FunnelPage({ data, view, funnelMode, setFunnelMode, gsStatus }: 
 
       {/* Summary metrics bar */}
       <div className={`rounded-lg p-4 px-5 flex gap-6 flex-wrap items-center mb-4 ${bClass}`}>
-        <div>
+        <div className="min-w-0">
           <div className="text-2xl font-semibold tracking-tight">
             {am != null ? Number(am).toLocaleString() : '—'}
           </div>
           <div className="text-[11px] text-text-2 mt-0.5">Actual migrations</div>
         </div>
-        <div>
+        <div className="min-w-0">
           <div className="text-2xl font-semibold tracking-tight">{target}</div>
           <div className="text-[11px] text-text-2 mt-0.5">Programme target</div>
         </div>
-        <div>
+        <div className="min-w-0">
           <div className="text-2xl font-semibold tracking-tight">
             {am != null ? Math.round((am / target) * 100) + '%' : '—'}
           </div>
           <div className="text-[11px] text-text-2 mt-0.5">% of target</div>
         </div>
-        <div>
+        <div className="min-w-0">
           <div className="text-2xl font-semibold tracking-tight">{oac ? oac + '%' : '—'}</div>
-          <div className="text-[11px] text-text-2 mt-0.5">Lead → join conv.</div>
+          <div className="text-[11px] text-text-2 mt-0.5">Lead → join rate</div>
         </div>
-        <div className="ml-auto text-[11px] text-text-2 italic">
+        <div className="ml-auto text-[11px] text-text-2 italic shrink-0">
           {gsStatus === 'live' ? '🟢 Live from Google Sheets' : 'Cached data'}
         </div>
       </div>
@@ -251,7 +251,7 @@ export function FunnelPage({ data, view, funnelMode, setFunnelMode, gsStatus }: 
                       key={h}
                       className={`text-left p-1.5 px-2.5 text-[10px] font-semibold tracking-[0.05em] text-text-3 border-b border-border uppercase ${
                         i > 0 ? 'text-right' : ''
-                      }`}
+                      } ${i === 7 ? 'pl-4' : ''}`}
                     >
                       {h}
                     </th>
