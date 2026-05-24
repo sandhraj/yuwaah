@@ -180,17 +180,17 @@ export function FunnelVizH({ stageDefs, bands, convRates, mode }: FunnelVizHProp
 
         {/* Per-band numbers centered in each block between stage dividers */}
         {bands.length > 1 && stageDefs.map((_, i) => {
-          // Center label in the block: midpoint between xs[i] and xs[i+1].
-          // Last stage has no next, so stay at xs[n-1].
-          const labelX = i < n - 1 ? (xs[i] + xs[i + 1]) / 2 : xs[i];
-          // Interpolate band boundaries at the label x (t=0.5 for mid-block, t=1 for last stage)
-          const t = i < n - 1 ? 0.5 : 1;
-          const bdsNext = i < n - 1 ? bds[i + 1] : bds[i];
+          // Last stage has no block to its right — skip to avoid overflow.
+          // Its total is already shown in the counts row below the SVG.
+          if (i === n - 1) return null;
+          const labelX = (xs[i] + xs[i + 1]) / 2;
+          // Interpolate band boundaries at the midpoint between stage i and i+1
+          const bdsNext = bds[i + 1];
           return bands.map((b, k) => {
             const val = b.stages[i];
             if (val == null || val === 0) return null;
-            const topY = bds[i][k] * (1 - t) + bdsNext[k] * t;
-            const botY = bds[i][k + 1] * (1 - t) + bdsNext[k + 1] * t;
+            const topY = (bds[i][k] + bdsNext[k]) / 2;
+            const botY = (bds[i][k + 1] + bdsNext[k + 1]) / 2;
             const bandH = botY - topY;
             if (bandH < 11) return null;
             const midY = (topY + botY) / 2;
