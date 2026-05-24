@@ -28,8 +28,7 @@ const BCTR = (BTOP + BBOT) / 2;
 const MAXH = (BBOT - BTOP) * 0.90;
 const CNT_Y = 238;
 const NM_Y = 256;
-const CONV_Y_EVEN = 14;
-const CONV_Y_ODD = 23;
+const CONV_Y = 16;
 
 // Abbreviated stage labels to fit in column width
 const SHORT: Record<string, string> = {
@@ -179,18 +178,26 @@ export function FunnelVizH({ stageDefs, bands, convRates, mode }: FunnelVizHProp
           );
         })}
 
-        {/* Per-band numbers inside each band segment — only when multiple bands */}
-        {bands.length > 1 && stageDefs.map((_, i) =>
-          bands.map((b, k) => {
+        {/* Per-band numbers centered in each block between stage dividers */}
+        {bands.length > 1 && stageDefs.map((_, i) => {
+          // Center label in the block: midpoint between xs[i] and xs[i+1].
+          // Last stage has no next, so stay at xs[n-1].
+          const labelX = i < n - 1 ? (xs[i] + xs[i + 1]) / 2 : xs[i];
+          // Interpolate band boundaries at the label x (t=0.5 for mid-block, t=1 for last stage)
+          const t = i < n - 1 ? 0.5 : 1;
+          const bdsNext = i < n - 1 ? bds[i + 1] : bds[i];
+          return bands.map((b, k) => {
             const val = b.stages[i];
             if (val == null || val === 0) return null;
-            const midY = (bds[i][k] + bds[i][k + 1]) / 2;
-            const bandH = bds[i][k + 1] - bds[i][k];
+            const topY = bds[i][k] * (1 - t) + bdsNext[k] * t;
+            const botY = bds[i][k + 1] * (1 - t) + bdsNext[k + 1] * t;
+            const bandH = botY - topY;
             if (bandH < 11) return null;
+            const midY = (topY + botY) / 2;
             return (
               <text
                 key={`${b.id}_${i}_v`}
-                x={xs[i]}
+                x={labelX}
                 y={midY + 3.5}
                 textAnchor="middle"
                 fontSize="8.5"
@@ -200,15 +207,15 @@ export function FunnelVizH({ stageDefs, bands, convRates, mode }: FunnelVizHProp
                 {fmtBandNum(val)}
               </text>
             );
-          })
-        )}
+          });
+        })}
 
         {/* Conversion rate labels — staggered above bands */}
         {convRates.map((cr, i) => {
           const midX = (xs[i] + xs[i + 1]) / 2;
           const rate = mode === 'actuals' && cr.actual != null ? cr.actual : cr.planned;
           if (rate == null) return null;
-          const ly = i % 2 === 0 ? CONV_Y_EVEN : CONV_Y_ODD;
+          const ly = CONV_Y;
           return (
             <text
               key={i}
