@@ -178,6 +178,26 @@ export function FunnelVizH({ stageDefs, bands, convRates, mode }: FunnelVizHProp
           );
         })}
 
+        {/* Y-axis state labels — left of first divider, centered in each band */}
+        {bands.length > 1 && bands.map((b, k) => {
+          const midY = (bds[0][k] + bds[0][k + 1]) / 2;
+          const bandH = bds[0][k + 1] - bds[0][k];
+          if (bandH < 8) return null;
+          return (
+            <text
+              key={`ylabel_${b.id}`}
+              x={xs[0] - 6}
+              y={midY + 3.5}
+              textAnchor="end"
+              fontSize="9"
+              fontWeight="700"
+              fill={b.color}
+            >
+              {b.id.toUpperCase()}
+            </text>
+          );
+        })}
+
         {/* Per-band numbers centered in each block between stage dividers */}
         {bands.length > 1 && stageDefs.map((_, i) => {
           // Last stage has no block to its right — skip to avoid overflow.
