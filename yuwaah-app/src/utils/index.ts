@@ -1,5 +1,5 @@
 import type { Actuals, Candidate, Employer, SkillProfile } from '../types';
-import { STAGE_KEYS, CONV_ORDER, DEFAULT_CONV } from '../constants';
+import { STAGE_KEYS, STAGE_DEFS, CONV_ORDER, DEFAULT_CONV } from '../constants';
 
 export function parseCSV(text: string): string[][] {
   const rows: string[][] = [];
@@ -277,6 +277,20 @@ export function scoreMatch(profile: SkillProfile, employer: Employer): number {
     if (employer.skills.some((s) => s.toLowerCase().includes(t.toLowerCase()) || t.toLowerCase().includes(s.toLowerCase()))) hits++;
   });
   return hits;
+}
+
+export function deriveActualsFromCandidates(
+  candidates: Candidate[],
+): { rj: Actuals; od: Actuals; jh: Actuals } {
+  const result: { rj: Actuals; od: Actuals; jh: Actuals } = { rj: {}, od: {}, jh: {} };
+  (['rj', 'od', 'jh'] as const).forEach((st) => {
+    const sc = candidates.filter((c) => c.state === st);
+    if (sc.length === 0) return;
+    STAGE_DEFS.forEach((stageDef, i) => {
+      result[st][stageDef.key] = sc.filter((c) => c.stageOrder >= i + 1).length;
+    });
+  });
+  return result;
 }
 
 export function renderPitch(template: string, employer: Employer, role: string): string {

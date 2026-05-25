@@ -4,6 +4,7 @@ import { SHEET_URLS } from '../constants';
 import {
   parseCSV, parseActuals, parseConv, parseTargets,
   parseSources, parseEmployers, parseProfiles, parseAssignments, parseCandidates,
+  deriveActualsFromCandidates,
 } from '../utils';
 
 const initialData: DataState = {
@@ -69,8 +70,18 @@ export function useSheets() {
       }
       log.push(`Sources RJ=${sourcesRJ.length} OD=${sourcesOD.length} JH=${sourcesJH.length}`);
       log.push(`Employers=${employers.length} Profiles=${profiles.length}`);
+      // Override actuals with live candidate counts (Option B)
+      const derived = deriveActualsFromCandidates(candidates);
+      const mergedActuals = { ...actuals };
+      (['rj', 'od', 'jh'] as const).forEach((st) => {
+        if (Object.keys(derived[st]).length > 0) {
+          mergedActuals[st] = { ...derived[st], last_updated: actuals[st]?.last_updated ?? null };
+          const m = derived[st]['migrated'];
+          log.push(`Derived actuals ${st.toUpperCase()}: leads=${derived[st]['leads']} migrated=${m}`);
+        }
+      });
       setData({
-        actuals,
+        actuals: mergedActuals,
         conv,
         targets,
         sources: { rj: sourcesRJ as never, od: sourcesOD as never, jh: sourcesJH as never },
