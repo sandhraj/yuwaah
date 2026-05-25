@@ -30,7 +30,9 @@ export function useSheets() {
     if (!url) throw new Error(`No URL configured for sheet "${name}"`);
     const r = await fetch(url);
     if (!r.ok) throw new Error(`HTTP ${r.status} for "${name}"`);
-    return parseCSV(await r.text());
+    const text = await r.text();
+    if (text.trimStart().startsWith('<')) throw new Error(`Sheet "${name}" returned HTML — tab may not be published`);
+    return parseCSV(text);
   };
 
   const fetchAllSheets = useCallback(async () => {
@@ -61,11 +63,15 @@ export function useSheets() {
           fetchSheet('Candidates_JH'),
         ]);
         const stateKeys = ['od', 'rj', 'jh'];
+        const labels = ['OD', 'RJ', 'JH'];
         candidates = results.flatMap((r, i) => r.status === 'fulfilled' ? parseCandidates(r.value, stateKeys[i]) : []);
-        const counts = results.map((r, i) =>
-          `${['OD','RJ','JH'][i]}=${r.status === 'fulfilled' ? parseCandidates(r.value, stateKeys[i]).length : 'skip'}`
-        );
-        log.push(`Candidates ${counts.join(' ')}`);
+        results.forEach((r, i) => {
+          if (r.status === 'fulfilled') {
+            log.push(`Candidates ${labels[i]}=${parseCandidates(r.value, stateKeys[i]).length}`);
+          } else {
+            log.push(`Candidates ${labels[i]}=FAIL: ${r.reason instanceof Error ? r.reason.message : String(r.reason)}`);
+          }
+        });
       } catch (_) {
         log.push('Candidates tabs not yet configured — skipping');
       }
