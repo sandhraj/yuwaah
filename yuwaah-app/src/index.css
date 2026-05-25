@@ -1,0 +1,279 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: 'DM Sans', system-ui, sans-serif;
+  font-size: 14px;
+  color: #DCE8F8;
+  background: #0A1628;
+  min-height: 100vh;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+input[type='range'] {
+  width: 100%;
+  accent-color: #E8601C;
+}
+
+input[type='range']:disabled {
+  opacity: 0.35;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #0A1628; }
+::-webkit-scrollbar-thumb { background: #1E3356; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #2A4570; }
+
+.pitch-box {
+  background: #162840;
+  border-radius: 6px;
+  padding: 10px 12px;
+  font-size: 10px;
+  line-height: 1.7;
+  border-left: 3px solid #E8601C;
+  white-space: pre-wrap;
+  max-height: 90px;
+  overflow: hidden;
+  font-family: 'JetBrains Mono', monospace;
+  color: #7B96B8;
+}
+
+/* Legacy horizontal funnel (kept for reference, not rendered) */
+.funnel-scroll {
+  overflow-x: auto;
+  padding-bottom: 4px;
+}
+
+.funnel {
+  display: flex;
+  gap: 3px;
+  min-width: 900px;
+}
+
+.fstage {
+  flex: 1;
+  text-align: center;
+  padding: 10px 5px;
+  border: 1px solid #1E3356;
+  border-radius: 10px;
+  background: #0F1E36;
+  position: relative;
+  transition: border-color 0.15s;
+}
+
+.fstage.nudge {
+  border-color: #F5B942;
+  background: #241A08;
+}
+
+.fstage.maybe {
+  border-color: #7B5EA8;
+  background: #160828;
+}
+
+.fstage.flag-amber {
+  border-color: #E8601C;
+  background: #2A1508;
+}
+
+.fstage.flag-red {
+  border-color: #E05252;
+  background: #280A0A;
+}
+
+.fstage .fn {
+  font-size: 18px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  color: #DCE8F8;
+}
+
+.fstage .fl {
+  font-size: 9px;
+  color: #7B96B8;
+  margin-top: 3px;
+  line-height: 1.3;
+}
+
+.fstage .fc {
+  font-size: 9px;
+  font-weight: 500;
+  margin-top: 4px;
+}
+
+.fstage .fdrop {
+  font-size: 9px;
+  color: #4D6A88;
+  margin-top: 3px;
+}
+
+/* Vertical funnel viz (kept, may not be rendered) */
+.funnel-viz {
+  padding: 6px 0;
+}
+
+.funnel-viz-bar {
+  border: 1.5px solid;
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  min-width: 180px;
+  transition: width 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.funnel-viz-label {
+  font-size: 11px;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.funnel-viz-count-block {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.funnel-viz-count {
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  color: #DCE8F8;
+  line-height: 1.1;
+}
+
+.funnel-viz-pct {
+  font-size: 9px;
+  color: #4D6A88;
+  margin-top: 1px;
+}
+
+.funnel-viz-connector-line {
+  width: 1px;
+  height: 7px;
+  background: #1E3356;
+}
+
+.funnel-viz-drop {
+  font-size: 9px;
+  color: #4D6A88;
+}
+
+.role-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  background: #0F1E36;
+  border-radius: 6px;
+  border: 1px solid #1E3356;
+  cursor: grab;
+}
+
+.role-row.dragging {
+  opacity: 0.4;
+}
+
+.role-row.drag-over {
+  border-color: #E8601C;
+  background: #2A1508;
+}
+
+.debug-panel {
+  background: #070F1C;
+  color: #3ECBA8;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px;
+  border-radius: 10px;
+  padding: 12px 14px;
+  max-height: 150px;
+  overflow-y: auto;
+  white-space: pre-wrap;
+  margin-bottom: 12px;
+  border: 1px solid #1E3356;
+}
+
+@layer components {
+  .btn {
+    @apply inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-md border border-border-2 bg-bg-3 cursor-pointer text-xs text-text-2 font-sans font-normal transition-all duration-150;
+  }
+  .btn:hover {
+    @apply bg-bg text-text border-border-2;
+  }
+  .btn-primary {
+    @apply bg-orange text-white border-orange font-medium;
+  }
+  .btn-primary:hover {
+    @apply bg-orange-dim border-orange-dim;
+  }
+  .btn-sm {
+    @apply text-[11px] px-2.5 py-1;
+  }
+  .btn-ghost {
+    @apply bg-bg-3 border-border;
+  }
+  .input {
+    @apply w-full px-2.5 py-1.5 border border-border-2 rounded-sm bg-bg text-text text-xs font-sans outline-none;
+  }
+  .input:focus {
+    @apply border-orange;
+  }
+  .card {
+    @apply bg-bg border border-border rounded-lg p-5 px-6 mb-4 shadow-card;
+  }
+  .card-title {
+    @apply text-[10px] font-semibold tracking-widest uppercase text-text-3 mb-3.5;
+  }
+  .badge {
+    @apply inline-block text-[9px] font-semibold px-1.5 py-0.5 rounded-[10px];
+  }
+  .badge-nudge {
+    @apply bg-nudge-border text-[#7a3800];
+  }
+  .badge-maybe {
+    @apply bg-[#C4A8E8] text-[#3D1070];
+  }
+  .badge-active {
+    @apply bg-green-bg text-green;
+  }
+  .badge-sent {
+    @apply bg-blue-bg text-blue-custom;
+  }
+  .badge-pending {
+    @apply bg-amber-bg text-amber-custom;
+  }
+  .pill {
+    @apply inline-block text-[10px] font-medium px-2 py-0.5 rounded-lg whitespace-nowrap;
+  }
+  .pill-good { @apply bg-green-bg text-green; }
+  .pill-warn { @apply bg-amber-bg text-amber-custom; }
+  .pill-bad { @apply bg-red-bg text-red-custom; }
+  .pill-na { @apply bg-bg-3 text-text-3; }
+  .pill-pos { @apply bg-green-bg text-green; }
+  .pill-neg { @apply bg-red-bg text-red-custom; }
+  .pill-zero { @apply bg-bg-3 text-text-3; }
+  .chip {
+    @apply text-[10px] bg-bg-3 border border-border px-1.5 py-0.5 rounded-lg inline-block m-0.5;
+  }
+  .assign-chip {
+    @apply inline-flex items-center gap-1 text-[10px] bg-green-bg text-green border border-green-border px-2 py-0.5 rounded-[10px] m-0.5;
+  }
+}
