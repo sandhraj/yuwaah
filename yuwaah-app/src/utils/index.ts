@@ -1,4 +1,4 @@
-import type { Actuals, Employer, SkillProfile } from '../types';
+import type { Actuals, Candidate, Employer, SkillProfile } from '../types';
 import { STAGE_KEYS, CONV_ORDER, DEFAULT_CONV } from '../constants';
 
 export function parseCSV(text: string): string[][] {
@@ -165,6 +165,42 @@ export function parseAssignments(rows: string[][]): Record<string, string[]> {
     if (!a[pid].includes(eid)) a[pid].push(eid);
   });
   return a;
+}
+
+export function parseCandidates(rows: string[][]): Candidate[] {
+  let hi = -1;
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i][0]?.trim().toLowerCase() === 'candidate_id') { hi = i; break; }
+  }
+  if (hi === -1) return [];
+  const headers = rows[hi].map((h) => h.trim().toLowerCase());
+  const col = (name: string, fallback: number) => { const i = headers.indexOf(name); return i >= 0 ? i : fallback; };
+  const idC = col('candidate_id', 0);
+  const nameC = col('name', 1);
+  const phoneC = col('phone', 2);
+  const stateC = col('state', 3);
+  const stageC = col('current_stage', 4);
+  const employerC = col('employer', 6);
+  const updatedC = col('last_updated', 7);
+  const notesC = col('notes', 8);
+  const stageOrderMap: Record<string, number> = {};
+  STAGE_KEYS.forEach((k, i) => { stageOrderMap[k] = i + 1; });
+  return rows.slice(hi + 1)
+    .filter((r) => r[nameC]?.trim())
+    .map((r, i) => {
+      const stage = r[stageC]?.trim().toLowerCase() || '';
+      return {
+        id: r[idC]?.trim() || String(i + 1),
+        name: r[nameC]?.trim() || '',
+        phone: r[phoneC]?.trim() || '',
+        state: r[stateC]?.trim().toLowerCase() || '',
+        stage,
+        stageOrder: stageOrderMap[stage] ?? 0,
+        employer: r[employerC]?.trim() || '',
+        lastUpdated: r[updatedC]?.trim() || '',
+        notes: r[notesC]?.trim() || '',
+      };
+    });
 }
 
 export function getFunnelPlanned(universe: number, conv: Record<string, number>): number[] {

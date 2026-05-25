@@ -1,4 +1,4 @@
-export type NavTab = 'funnel' | 'sources' | 'conversions' | 'fieldops' | 'matching';
+export type NavTab = 'funnel' | 'sources' | 'conversions' | 'fieldops' | 'matching' | 'candidates';
 export type StateView = 'all' | 'rj' | 'od' | 'jh';
 export type FunnelMode = 'planning' | 'actuals';
 export type MatchSubTab = 'match' | 'employers';
@@ -96,6 +96,18 @@ export interface Actuals {
   [key: string]: number | string | null | undefined;
 }
 
+export interface Candidate {
+  id: string;
+  name: string;
+  phone: string;
+  state: string;
+  stage: string;
+  stageOrder: number;
+  employer: string;
+  lastUpdated: string;
+  notes: string;
+}
+
 export interface DataState {
   actuals: { rj: Actuals; od: Actuals; jh: Actuals };
   conv: Record<string, number>;
@@ -104,6 +116,7 @@ export interface DataState {
   employers: Employer[];
   profiles: SkillProfile[];
   assignments: Record<string, string[]>;
+  candidates: Candidate[];
 }
 
 export interface LocalState {

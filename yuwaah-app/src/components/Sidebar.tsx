@@ -14,6 +14,7 @@ const navItems: { key: NavTab; icon: string; label: string; section: string }[] 
   { key: 'funnel', icon: '📊', label: 'Pipeline funnel', section: 'Programme' },
   { key: 'sources', icon: '🗺', label: 'Source channels', section: 'Programme' },
   { key: 'conversions', icon: '📈', label: 'Conversion ratios', section: 'Programme' },
+  { key: 'candidates', icon: '🧑‍🤝‍🧑', label: 'Candidate tracker', section: 'Programme' },
   { key: 'fieldops', icon: '👥', label: 'Field ops & roles', section: 'Team' },
   { key: 'matching', icon: '🔗', label: 'Employer matching', section: 'Employers' },
 ];

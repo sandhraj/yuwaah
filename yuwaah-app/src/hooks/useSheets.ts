@@ -3,7 +3,7 @@ import type { DataState, GSStatus } from '../types';
 import { SHEET_URLS } from '../constants';
 import {
   parseCSV, parseActuals, parseConv, parseTargets,
-  parseSources, parseEmployers, parseProfiles, parseAssignments,
+  parseSources, parseEmployers, parseProfiles, parseAssignments, parseCandidates,
 } from '../utils';
 
 const initialData: DataState = {
@@ -14,6 +14,7 @@ const initialData: DataState = {
   employers: [],
   profiles: [],
   assignments: {},
+  candidates: [],
 };
 
 export function useSheets() {
@@ -50,6 +51,15 @@ export function useSheets() {
       const employers = parseEmployers(empR);
       const profiles = parseProfiles(profR);
       const assignments = parseAssignments(asgnR);
+      // Candidates sheet is optional — fetch fails gracefully if GID not yet configured
+      let candidates = initialData.candidates;
+      try {
+        const candR = await fetchSheet('Candidates');
+        candidates = parseCandidates(candR);
+        log.push(`Candidates=${candidates.length}`);
+      } catch (_) {
+        log.push('Candidates sheet not yet configured — skipping');
+      }
       log.push(`Sources RJ=${sourcesRJ.length} OD=${sourcesOD.length} JH=${sourcesJH.length}`);
       log.push(`Employers=${employers.length} Profiles=${profiles.length}`);
       setData({
@@ -60,6 +70,7 @@ export function useSheets() {
         employers,
         profiles,
         assignments,
+        candidates,
       });
       setStatus('live');
       setLastRefresh(new Date());

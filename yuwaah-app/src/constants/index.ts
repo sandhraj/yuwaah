@@ -12,6 +12,9 @@ export const SHEET_URLS: Record<string, string> = {
   Employers: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpET-ikaApsi7jA8iMDD0Ou2o9dZbMIXnCgx2tTSufCcFKIYsD6Dl2dbN-nJgLsPVSypDVTg7ap8bZ/pub?gid=1925224735&single=true&output=csv',
   Skill_Profiles: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpET-ikaApsi7jA8iMDD0Ou2o9dZbMIXnCgx2tTSufCcFKIYsD6Dl2dbN-nJgLsPVSypDVTg7ap8bZ/pub?gid=1575252389&single=true&output=csv',
   Assignments: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpET-ikaApsi7jA8iMDD0Ou2o9dZbMIXnCgx2tTSufCcFKIYsD6Dl2dbN-nJgLsPVSypDVTg7ap8bZ/pub?gid=1389124769&single=true&output=csv',
+  // TODO: replace the gid below with the actual gid of your Candidates sheet tab
+  // after creating the tab and publishing: File → Share → Publish to web → CSV
+  Candidates: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpET-ikaApsi7jA8iMDD0Ou2o9dZbMIXnCgx2tTSufCcFKIYsD6Dl2dbN-nJgLsPVSypDVTg7ap8bZ/pub?gid=CANDIDATES_GID&single=true&output=csv',
 };
 
 export const CHANNEL_COLORS: Record<string, string> = {

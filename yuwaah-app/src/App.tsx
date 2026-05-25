@@ -10,6 +10,7 @@ import { SourcesPage } from './pages/SourcesPage';
 import { ConversionsPage } from './pages/ConversionsPage';
 import { FieldOpsPage } from './pages/FieldOpsPage';
 import { MatchingPage } from './pages/MatchingPage';
+import { CandidatesPage } from './pages/CandidatesPage';
 import { getFunnelPlanned } from './utils';
 import './index.css';
 
@@ -38,6 +39,7 @@ const PAGE_TITLES: Record<NavTab, string> = {
   conversions: 'Conversion Ratios',
   fieldops: 'Field Ops & Roles',
   matching: 'Employer Matching',
+  candidates: 'Candidate Tracker',
 };
 
 // Shorter labels for narrow screens
@@ -239,6 +241,7 @@ export default function App() {
             setMatchSubTab={setMatchSubTab}
           />
         )}
+        {navTab === 'candidates' && <CandidatesPage data={data} />}
       </main>
 
       <Toast visible={toastVisible} onHide={() => setToastVisible(false)} />
