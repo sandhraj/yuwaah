@@ -167,40 +167,81 @@ export function parseAssignments(rows: string[][]): Record<string, string[]> {
   return a;
 }
 
+function normState(raw: string): string {
+  const s = raw.trim().toLowerCase();
+  if (s === 'od' || s.includes('odisha')) return 'od';
+  if (s === 'rj' || s.includes('rajasthan')) return 'rj';
+  if (s === 'jh' || s.includes('jharkhand')) return 'jh';
+  return s;
+}
+
+function deriveCandidateStage(r: Record<string, string>): string {
+  const g = (k: string) => (r[k] || '').trim().toLowerCase();
+  const has = (k: string) => (r[k] || '').trim() !== '';
+  const cs = g('current stage');
+  if (cs === 'migrated' || has('joining date')) return 'migrated';
+  if (cs === 'migration stage' || g('offer letter status') === 'received') return 'offer_released';
+  if (g('selection status') === 'selected') return 'selected';
+  if (has('date - interview') || has('job interview') || cs.startsWith('interview')) return 'interview';
+  if (['done', 'received'].includes(g('p2e certification')) || cs === 'p2e certification') return 'docs_complete';
+  if (g('parents counselling') === 'done' || cs === 'parent counseling') return 'parent_approved';
+  if (has('date - counseling') || cs === 'registration') return 'counselled';
+  if (g('wysa session') === 'present' || has('date - wysa') || cs === 'wysa session') return 'prequalified';
+  if (g('pre screening') === 'done' || cs === 'pre screening') return 'responded';
+  if (has('mobilisation date') || cs === 'mobilised') return 'outreach';
+  return 'leads';
+}
+
 export function parseCandidates(rows: string[][]): Candidate[] {
+  // Accept any header row that contains 'Candidate Name' (the real tracker schema)
   let hi = -1;
   for (let i = 0; i < rows.length; i++) {
-    if (rows[i][0]?.trim().toLowerCase() === 'candidate_id') { hi = i; break; }
+    if (rows[i].some((c) => c?.trim() === 'Candidate Name' || c?.trim() === 'name')) { hi = i; break; }
   }
   if (hi === -1) return [];
-  const headers = rows[hi].map((h) => h.trim().toLowerCase());
-  const col = (name: string, fallback: number) => { const i = headers.indexOf(name); return i >= 0 ? i : fallback; };
-  const idC = col('candidate_id', 0);
-  const nameC = col('name', 1);
-  const phoneC = col('phone', 2);
-  const stateC = col('state', 3);
-  const stageC = col('current_stage', 4);
-  const employerC = col('employer', 6);
-  const updatedC = col('last_updated', 7);
-  const notesC = col('notes', 8);
+
+  // Original headers (preserve case for lookup)
+  const rawHeaders = rows[hi].map((h) => (h || '').trim());
+  // Case-insensitive lookup map
+  const hIdx: Record<string, number> = {};
+  rawHeaders.forEach((h, i) => { if (h) hIdx[h.toLowerCase()] = i; });
+  const col = (name: string) => hIdx[name.toLowerCase()] ?? -1;
+
   const stageOrderMap: Record<string, number> = {};
   STAGE_KEYS.forEach((k, i) => { stageOrderMap[k] = i + 1; });
+
   return rows.slice(hi + 1)
-    .filter((r) => r[nameC]?.trim())
+    .filter((r) => r[col('candidate name') > -1 ? col('candidate name') : 3]?.trim())
     .map((r, i) => {
-      const stage = r[stageC]?.trim().toLowerCase() || '';
+      const get = (name: string) => { const c = col(name); return c >= 0 ? (r[c]?.trim() || '') : ''; };
+      // Build a lookup dict keyed by original header for deriveCandidateStage
+      const rowMap: Record<string, string> = {};
+      rawHeaders.forEach((h, ci) => { if (h) rowMap[h] = r[ci]?.trim() || ''; });
+
+      const rawState = get('state') || get('State');
+      const stage = deriveCandidateStage(rowMap);
+
       return {
-        id: r[idC]?.trim() || String(i + 1),
-        name: r[nameC]?.trim() || '',
-        phone: r[phoneC]?.trim() || '',
-        state: r[stateC]?.trim().toLowerCase() || '',
+        id: get('Candidate ID') || get('candidate_id') || String(i + 1),
+        name: get('Candidate Name') || get('name'),
+        phone: String(get('Contact Number') || get('contact_number') || '').replace(/\.0$/, ''),
+        state: normState(rawState),
+        district: get('District'),
+        qualification: get('Qualification'),
         stage,
         stageOrder: stageOrderMap[stage] ?? 0,
-        employer: r[employerC]?.trim() || '',
-        lastUpdated: r[updatedC]?.trim() || '',
-        notes: r[notesC]?.trim() || '',
+        currentStatus: get('Current Status'),
+        employer: get('Company Name') || get('company_name'),
+        city: get('Location') || get('city'),
+        mobilisedDate: get('Mobilisation Date') || get('mobilisation_date'),
+        joiningDate: get('Joining Date') || get('joining_date'),
+        dropoutStage: get('Dropout Stage') || get('dropout_stage'),
+        dropoutReason: get('Dropout Reason') || get('dropout_reason'),
+        lastFollowup: get('Last Follow Up date') || get('last_followup'),
+        remarks: get('Detailed Remarks') || get('remarks'),
       };
-    });
+    })
+    .filter((c) => c.name);
 }
 
 export function getFunnelPlanned(universe: number, conv: Record<string, number>): number[] {

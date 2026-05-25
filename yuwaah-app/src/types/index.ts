@@ -100,12 +100,20 @@ export interface Candidate {
   id: string;
   name: string;
   phone: string;
-  state: string;
-  stage: string;
-  stageOrder: number;
+  state: string;         // rj | od | jh
+  district: string;
+  qualification: string;
+  stage: string;         // derived dashboard stage key
+  stageOrder: number;    // 1–11
+  currentStatus: string; // Active | Dropped
   employer: string;
-  lastUpdated: string;
-  notes: string;
+  city: string;
+  mobilisedDate: string;
+  joiningDate: string;
+  dropoutStage: string;
+  dropoutReason: string;
+  lastFollowup: string;
+  remarks: string;
 }
 
 export interface DataState {
