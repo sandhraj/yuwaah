@@ -31,42 +31,46 @@ export const CHANNEL_COLORS: Record<string, string> = {
 
 export const STAGE_DEFS: StageDef[] = [
   { key: 'leads', label: 'Lead pool', nudge: false, maybe: false },
-  { key: 'outreach', label: 'Nudgebay outreach', nudge: true, maybe: false },
+  { key: 'outreach', label: 'Outreach', nudge: true, maybe: false },
   { key: 'responded', label: 'Responded', nudge: true, maybe: false },
-  { key: 'prequalified', label: 'Pre-qualified', nudge: true, maybe: true },
+  { key: 'prequalified', label: 'Pre-qual', nudge: true, maybe: true },
   { key: 'counselled', label: 'Counselled', nudge: false, maybe: false },
-  { key: 'parent_approved', label: 'Parent approved', nudge: false, maybe: false },
-  { key: 'docs_complete', label: 'Docs complete', nudge: false, maybe: false },
-  { key: 'interview', label: 'Interview scheduled', nudge: false, maybe: false },
-  { key: 'selected', label: 'Employer selected', nudge: false, maybe: false },
-  { key: 'offer_released', label: 'Offer released', nudge: false, maybe: false },
-  { key: 'migrated', label: 'Migrated & joined', nudge: false, maybe: false },
+  { key: 'parent_approved', label: 'Parent approval', nudge: false, maybe: false },
+  { key: 'docs_complete', label: 'Document collection', nudge: false, maybe: false },
+  { key: 'interview', label: 'Interview', nudge: false, maybe: false },
+  { key: 'selected', label: 'Selection', nudge: false, maybe: false },
+  { key: 'offer_released', label: 'Offer received', nudge: false, maybe: false },
+  { key: 'wysa', label: 'Wysa session', nudge: false, maybe: false },
+  { key: 'p2e', label: 'P2E', nudge: false, maybe: false },
+  { key: 'migrated', label: 'Migration', nudge: false, maybe: false },
 ];
 
 export const STAGE_KEYS = STAGE_DEFS.map((s) => s.key);
 
 export const CONV_ORDER = [
   'r_outreach', 'r_responded', 'r_preq', 'r_counsel', 'r_parent',
-  'r_docs', 'r_interview', 'r_selected', 'r_offer', 'r_migrated',
+  'r_docs', 'r_interview', 'r_selected', 'r_offer', 'r_wysa', 'r_p2e', 'r_migrated',
 ];
 
 export const CONV_LABELS: Record<string, string> = {
-  r_outreach: 'Lead pool → Nudgebay reached',
+  r_outreach: 'Lead pool → Outreach',
   r_responded: 'Outreach → Responded',
-  r_preq: 'Responded → Pre-qualified',
-  r_counsel: 'Pre-qualified → Counselled',
-  r_parent: 'Counselled → Parent approved',
-  r_docs: 'Parent approved → Docs complete',
-  r_interview: 'Docs complete → Interview',
-  r_selected: 'Interview → Selected',
-  r_offer: 'Selected → Offer released',
-  r_migrated: 'Offer released → Migrated',
+  r_preq: 'Responded → Pre-qual',
+  r_counsel: 'Pre-qual → Counselled',
+  r_parent: 'Counselled → Parent approval',
+  r_docs: 'Parent approval → Document collection',
+  r_interview: 'Document collection → Interview',
+  r_selected: 'Interview → Selection',
+  r_offer: 'Selection → Offer received',
+  r_wysa: 'Offer received → Wysa session',
+  r_p2e: 'Wysa session → P2E',
+  r_migrated: 'P2E → Migration',
 };
 
 export const DEFAULT_CONV: Record<string, number> = {
   r_outreach: 65, r_responded: 30, r_preq: 45, r_counsel: 60,
   r_parent: 58, r_docs: 67, r_interview: 85, r_selected: 65,
-  r_offer: 90, r_migrated: 82,
+  r_offer: 90, r_wysa: 95, r_p2e: 95, r_migrated: 82,
 };
 
 export const DEFAULT_STAGES: Stage[] = [
@@ -79,8 +83,10 @@ export const DEFAULT_STAGES: Stage[] = [
   { key: 'docs_complete', label: 'Docs complete', nudge: false, maybe: false, owner: 'Ops leads', dropCause: 'Missing docs', recovery: 'Checklist D-7; doc runner deployed', roles: [{ name: 'Boris', type: 'RJ' }, { name: 'Yamana', type: 'OD' }, { name: 'Krishna', type: 'JH' }] },
   { key: 'interview', label: 'Interview scheduled', nudge: false, maybe: false, owner: 'Placement officers', dropCause: 'No-show', recovery: 'Reschedule 72h', roles: [{ name: 'Anushreya', type: 'OD' }, { name: 'Jitender', type: 'RJ' }, { name: 'Bipin', type: 'JH' }] },
   { key: 'selected', label: 'Employer selected', nudge: false, maybe: false, owner: 'Placement officers', dropCause: 'Employer rejection', recovery: 'Alternate employer if rejected', roles: [{ name: 'Sandheep', type: 'POC' }, { name: 'Ajay', type: 'Director' }] },
-  { key: 'offer_released', label: 'Offer released', nudge: false, maybe: false, owner: 'Placement officers', dropCause: 'Last-minute withdrawal', recovery: 'Immediate counsellor call; SOP D+0', roles: [{ name: 'Sandheep', type: 'POC' }] },
-  { key: 'migrated', label: 'Migrated & joined', nudge: false, maybe: false, owner: 'Travel coordinators', dropCause: 'Last-minute withdrawal', recovery: 'Dropout recovery SOP D+0 to D+7', roles: [{ name: 'Boris', type: 'RJ' }, { name: 'Yamana', type: 'OD' }, { name: 'Krishna', type: 'JH' }] },
+  { key: 'offer_released', label: 'Offer received', nudge: false, maybe: false, owner: 'Placement officers', dropCause: 'Last-minute withdrawal', recovery: 'Immediate counsellor call; SOP D+0', roles: [{ name: 'Sandheep', type: 'POC' }] },
+  { key: 'wysa', label: 'Wysa session', nudge: false, maybe: false, owner: 'Wysa / counsellors', dropCause: 'No-show / not completed', recovery: 'Reschedule within 48h', roles: [] },
+  { key: 'p2e', label: 'P2E', nudge: false, maybe: false, owner: 'Training coordinators', dropCause: 'Dropout during training', recovery: 'Re-engage within 7 days', roles: [] },
+  { key: 'migrated', label: 'Migration', nudge: false, maybe: false, owner: 'Travel coordinators', dropCause: 'Last-minute withdrawal', recovery: 'Dropout recovery SOP D+0 to D+7', roles: [{ name: 'Boris', type: 'RJ' }, { name: 'Yamana', type: 'OD' }, { name: 'Krishna', type: 'JH' }] },
 ];
 
 export const DEFAULT_FEARS: Fear[] = [

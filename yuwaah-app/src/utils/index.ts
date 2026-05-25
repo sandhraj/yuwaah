@@ -175,42 +175,22 @@ function normState(raw: string): string {
   return s;
 }
 
-function deriveCandidateStage(r: Record<string, string>): string {
-  const g = (k: string) => (r[k] || '').trim().toLowerCase();
-  const has = (k: string) => (r[k] || '').trim() !== '';
-
-  const isDropped = g('current status').startsWith('drop');
-
-  if (isDropped) {
-    // For dropped candidates rely only on concrete milestone columns (dates / done-received
-    // statuses) — the "Current Stage" text field may be stale or cleared after dropping.
-    // Joining date is still valid: they migrated and later dropped from the job.
-    if (has('joining date')) return 'migrated';
-    if (g('offer letter status') === 'received') return 'offer_released';
-    if (g('selection status') === 'selected') return 'selected';
-    if (has('date - interview') || has('job interview')) return 'interview';
-    if (['done', 'received'].includes(g('p2e certification'))) return 'docs_complete';
-    if (g('parents counselling') === 'done') return 'parent_approved';
-    if (has('date - counseling')) return 'counselled';
-    if (g('wysa session') === 'present' || has('date - wysa')) return 'prequalified';
-    if (g('pre screening') === 'done') return 'responded';
-    if (has('mobilisation date')) return 'outreach';
-    return 'leads';
-  }
-
-  // Active candidate — use full cascade including "Current Stage" text hints.
-  const cs = g('current stage');
-  if (cs === 'migrated' || has('joining date')) return 'migrated';
-  if (cs === 'migration stage' || g('offer letter status') === 'received') return 'offer_released';
-  if (g('selection status') === 'selected') return 'selected';
-  if (has('date - interview') || has('job interview') || cs.startsWith('interview')) return 'interview';
-  if (['done', 'received'].includes(g('p2e certification')) || cs === 'p2e certification') return 'docs_complete';
-  if (g('parents counselling') === 'done' || cs === 'parent counseling') return 'parent_approved';
-  if (has('date - counseling') || cs === 'registration') return 'counselled';
-  if (g('wysa session') === 'present' || has('date - wysa') || cs === 'wysa session') return 'prequalified';
-  if (g('pre screening') === 'done' || cs === 'pre screening') return 'responded';
-  if (has('mobilisation date') || cs === 'mobilised') return 'outreach';
-  return 'leads';
+export function mapCurrentStage(raw: string): string {
+  const s = raw.trim().toLowerCase().replace(/\.$/, '');
+  if (s === 'lead pool' || s === 'leads' || s === 'lead') return 'leads';
+  if (s === 'outreach') return 'outreach';
+  if (s === 'responded') return 'responded';
+  if (s.startsWith('pre-qual') || s.startsWith('pre qual') || s === 'prequalified') return 'prequalified';
+  if (s === 'counselled' || s === 'counseling' || s === 'counselling') return 'counselled';
+  if (s.startsWith('parent')) return 'parent_approved';
+  if (s === 'docs' || s.startsWith('doc')) return 'docs_complete';
+  if (s === 'interview') return 'interview';
+  if (s === 'selected' || s === 'selection') return 'selected';
+  if (s === 'offer' || s.startsWith('offer')) return 'offer_released';
+  if (s.startsWith('wysa')) return 'wysa';
+  if (s.startsWith('p2e')) return 'p2e';
+  if (s === 'migrated' || s === 'migration') return 'migrated';
+  return '';
 }
 
 export function parseCandidates(rows: string[][], defaultState = ''): Candidate[] {
@@ -241,7 +221,8 @@ export function parseCandidates(rows: string[][], defaultState = ''): Candidate[
 
       const rawState = get('state') || get('State');
       const state = normState(rawState) || defaultState;
-      const stage = deriveCandidateStage(rowMap);
+      const currentStatus = get('Current Status');
+      const stage = mapCurrentStage(get('Current Stage') || get('current stage'));
 
       return {
         id: get('Candidate ID') || get('candidate_id') || String(i + 1),
@@ -252,7 +233,7 @@ export function parseCandidates(rows: string[][], defaultState = ''): Candidate[
         qualification: get('Qualification'),
         stage,
         stageOrder: stageOrderMap[stage] ?? 0,
-        currentStatus: get('Current Status'),
+        currentStatus,
         employer: get('Company Name') || get('company_name'),
         city: get('Location') || get('city'),
         mobilisedDate: get('Mobilisation Date') || get('mobilisation_date'),
@@ -266,10 +247,16 @@ export function parseCandidates(rows: string[][], defaultState = ''): Candidate[
     .filter((c) => c.name);
 }
 
-export function getFunnelPlanned(universe: number, conv: Record<string, number>): number[] {
-  const st = [universe];
-  CONV_ORDER.forEach((k) => st.push(Math.round(st[st.length - 1] * (conv[k] || 0) / 100)));
-  return st;
+export function getFunnelPlanned(target: number, conv: Record<string, number>): number[] {
+  // Work backwards from migration target through planned conv rates
+  // to show required count at each stage to achieve the target.
+  const stages: number[] = new Array(STAGE_DEFS.length);
+  stages[stages.length - 1] = target;
+  for (let i = CONV_ORDER.length - 1; i >= 0; i--) {
+    const rate = Math.max(conv[CONV_ORDER[i]] ?? 1, 1) / 100;
+    stages[i] = Math.ceil(stages[i + 1] / rate);
+  }
+  return stages;
 }
 
 export function calcConv(actuals: Actuals, fromKey: string, toKey: string): number | null {
@@ -299,20 +286,6 @@ export function scoreMatch(profile: SkillProfile, employer: Employer): number {
     if (employer.skills.some((s) => s.toLowerCase().includes(t.toLowerCase()) || t.toLowerCase().includes(s.toLowerCase()))) hits++;
   });
   return hits;
-}
-
-export function deriveActualsFromCandidates(
-  candidates: Candidate[],
-): { rj: Actuals; od: Actuals; jh: Actuals } {
-  const result: { rj: Actuals; od: Actuals; jh: Actuals } = { rj: {}, od: {}, jh: {} };
-  (['rj', 'od', 'jh'] as const).forEach((st) => {
-    const sc = candidates.filter((c) => c.state === st);
-    if (sc.length === 0) return;
-    STAGE_DEFS.forEach((stageDef, i) => {
-      result[st][stageDef.key] = sc.filter((c) => c.stageOrder >= i + 1).length;
-    });
-  });
-  return result;
 }
 
 export function renderPitch(template: string, employer: Employer, role: string): string {

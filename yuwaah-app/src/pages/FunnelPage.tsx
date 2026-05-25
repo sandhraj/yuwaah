@@ -1,6 +1,6 @@
 import type { DataState, FunnelMode } from '../types';
 import { STAGE_DEFS, CONV_ORDER, SHEET_ID } from '../constants';
-import { getFunnelPlanned, calcConv } from '../utils';
+import { getFunnelPlanned } from '../utils';
 import { FunnelVizH } from '../components/FunnelVizH';
 import type { FunnelBand, ConvRate } from '../components/FunnelVizH';
 
@@ -32,23 +32,14 @@ export function FunnelPage({ data, view, funnelMode, setFunnelMode, gsStatus }: 
     return data.actuals[view as 'rj' | 'od' | 'jh'] || {};
   };
 
-  const getUniverse = () => {
-    const sources =
-      view === 'all'
-        ? [...data.sources.rj, ...data.sources.od, ...data.sources.jh]
-        : data.sources[view as 'rj' | 'od' | 'jh'] || [];
-    return sources.reduce((a, s) => a + Number((s as Record<string, string>)['vol'] || 0), 0);
-  };
-
   const getTarget = () => {
     if (view === 'all') return Object.values(data.targets).reduce((a, v) => a + v, 0);
     return data.targets[view as 'rj' | 'od' | 'jh'] || 0;
   };
 
   const act = getActuals();
-  const universe = getUniverse();
   const target = getTarget();
-  const fp = getFunnelPlanned(universe, data.conv);
+  const fp = getFunnelPlanned(target, data.conv);
   const am = act['migrated'] as number | null;
   const al = act['leads'] as number | null;
   const oac = al && am ? ((am / al) * 100).toFixed(1) : null;
@@ -91,12 +82,10 @@ export function FunnelPage({ data, view, funnelMode, setFunnelMode, gsStatus }: 
     ];
   })();
 
-  // Conversion rates for funnel labels
-  const funnelConvRates: ConvRate[] = CONV_ORDER.map((key, i) => ({
-    actual:
-      funnelMode === 'actuals'
-        ? calcConv(act as Record<string, number | null>, STAGE_DEFS[i].key, STAGE_DEFS[i + 1].key)
-        : null,
+  // Conversion rates: only show planned rates (point-in-time actuals don't yield
+  // meaningful step-by-step rates — adjacent stage counts are independent cohorts).
+  const funnelConvRates: ConvRate[] = CONV_ORDER.map((key) => ({
+    actual: null,
     planned: data.conv[key] ?? null,
   }));
 
@@ -131,7 +120,7 @@ export function FunnelPage({ data, view, funnelMode, setFunnelMode, gsStatus }: 
         <div className="card-title">Pipeline funnel — planning view</div>
         {modeToggle}
         <div className="bg-amber-bg border-l-4 border-nudge-border px-3 py-2 rounded-r text-[11px] text-amber-custom mb-4">
-          Planning view — projections based on planned conversion ratios. Switch to Actuals to see live performance.
+          Planning view — shows leads required at each stage to hit the migration target of {target}, based on planned conversion rates. Switch to Actuals for live pipeline counts.
         </div>
         <FunnelVizH
           stageDefs={STAGE_DEFS}

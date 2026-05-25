@@ -71,15 +71,16 @@ export function useSheets() {
         if (odR.status === 'rejected') log.push(`Candidates OD FAIL: ${odR.reason instanceof Error ? odR.reason.message : odR.reason}`);
         if (rjR.status === 'rejected') log.push(`Candidates RJ FAIL: ${rjR.reason instanceof Error ? rjR.reason.message : rjR.reason}`);
         if (jhR.status === 'rejected') log.push(`Candidates JH FAIL: ${jhR.reason instanceof Error ? jhR.reason.message : jhR.reason}`);
-        // Override actuals per state directly from tab arrays (no state-field matching)
+        // Derive point-in-time actuals: active candidates only, counted at exact stage
         ([['od', odC], ['rj', rjC], ['jh', jhC]] as const).forEach(([st, sc]) => {
           if (sc.length === 0) return;
+          const active = sc.filter((c) => c.currentStatus.trim().toLowerCase() === 'active');
           const stActuals: Actuals = { last_updated: actuals[st]?.last_updated ?? null };
-          STAGE_DEFS.forEach((stageDef, i) => {
-            stActuals[stageDef.key] = sc.filter((c) => c.stageOrder >= i + 1).length;
+          STAGE_DEFS.forEach((stageDef) => {
+            stActuals[stageDef.key] = active.filter((c) => c.stage === stageDef.key).length;
           });
           mergedActuals[st] = stActuals;
-          log.push(`Derived ${st.toUpperCase()}: leads=${stActuals['leads']} migrated=${stActuals['migrated']}`);
+          log.push(`Derived ${st.toUpperCase()}: active=${active.length} migrated=${stActuals['migrated']}`);
         });
       } catch (_) {
         log.push('Candidates tabs not yet configured — skipping');
