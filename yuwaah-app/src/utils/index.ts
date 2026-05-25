@@ -213,7 +213,7 @@ function deriveCandidateStage(r: Record<string, string>): string {
   return 'leads';
 }
 
-export function parseCandidates(rows: string[][]): Candidate[] {
+export function parseCandidates(rows: string[][], defaultState = ''): Candidate[] {
   // Accept any header row that contains 'Candidate Name' (the real tracker schema)
   let hi = -1;
   for (let i = 0; i < rows.length; i++) {
@@ -240,13 +240,14 @@ export function parseCandidates(rows: string[][]): Candidate[] {
       rawHeaders.forEach((h, ci) => { if (h) rowMap[h] = r[ci]?.trim() || ''; });
 
       const rawState = get('state') || get('State');
+      const state = normState(rawState) || defaultState;
       const stage = deriveCandidateStage(rowMap);
 
       return {
         id: get('Candidate ID') || get('candidate_id') || String(i + 1),
         name: get('Candidate Name') || get('name'),
         phone: String(get('Contact Number') || get('contact_number') || '').replace(/\.0$/, ''),
-        state: normState(rawState),
+        state,
         district: get('District'),
         qualification: get('Qualification'),
         stage,

@@ -60,9 +60,10 @@ export function useSheets() {
           fetchSheet('Candidates_RJ'),
           fetchSheet('Candidates_JH'),
         ]);
-        candidates = results.flatMap((r) => r.status === 'fulfilled' ? parseCandidates(r.value) : []);
+        const stateKeys = ['od', 'rj', 'jh'];
+        candidates = results.flatMap((r, i) => r.status === 'fulfilled' ? parseCandidates(r.value, stateKeys[i]) : []);
         const counts = results.map((r, i) =>
-          `${['OD','RJ','JH'][i]}=${r.status === 'fulfilled' ? parseCandidates(r.value).length : 'skip'}`
+          `${['OD','RJ','JH'][i]}=${r.status === 'fulfilled' ? parseCandidates(r.value, stateKeys[i]).length : 'skip'}`
         );
         log.push(`Candidates ${counts.join(' ')}`);
       } catch (_) {
