@@ -14,9 +14,9 @@ export const SHEET_URLS: Record<string, string> = {
   Assignments: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpET-ikaApsi7jA8iMDD0Ou2o9dZbMIXnCgx2tTSufCcFKIYsD6Dl2dbN-nJgLsPVSypDVTg7ap8bZ/pub?gid=1389124769&single=true&output=csv',
   // TODO: replace each GID below after copying your state tracker tabs into this sheet
   // and publishing: File → Share → Publish to web → select tab → CSV → Publish
-  Candidates_OD: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpET-ikaApsi7jA8iMDD0Ou2o9dZbMIXnCgx2tTSufCcFKIYsD6Dl2dbN-nJgLsPVSypDVTg7ap8bZ/pub?gid=ODISHA_GID&single=true&output=csv',
-  Candidates_RJ: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpET-ikaApsi7jA8iMDD0Ou2o9dZbMIXnCgx2tTSufCcFKIYsD6Dl2dbN-nJgLsPVSypDVTg7ap8bZ/pub?gid=RAJASTHAN_GID&single=true&output=csv',
-  Candidates_JH: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpET-ikaApsi7jA8iMDD0Ou2o9dZbMIXnCgx2tTSufCcFKIYsD6Dl2dbN-nJgLsPVSypDVTg7ap8bZ/pub?gid=JHARKHAND_GID&single=true&output=csv',
+  Candidates_OD: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpET-ikaApsi7jA8iMDD0Ou2o9dZbMIXnCgx2tTSufCcFKIYsD6Dl2dbN-nJgLsPVSypDVTg7ap8bZ/pub?gid=924876789&single=true&output=csv',
+  Candidates_RJ: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpET-ikaApsi7jA8iMDD0Ou2o9dZbMIXnCgx2tTSufCcFKIYsD6Dl2dbN-nJgLsPVSypDVTg7ap8bZ/pub?gid=1861962451&single=true&output=csv',
+  Candidates_JH: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpET-ikaApsi7jA8iMDD0Ou2o9dZbMIXnCgx2tTSufCcFKIYsD6Dl2dbN-nJgLsPVSypDVTg7ap8bZ/pub?gid=1861412633&single=true&output=csv',
 };
 
 export const CHANNEL_COLORS: Record<string, string> = {
