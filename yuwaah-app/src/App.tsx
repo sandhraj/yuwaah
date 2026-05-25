@@ -1,10 +1,11 @@
 import { useEffect, useState, useCallback } from 'react';
-import type { NavTab, StateView, FunnelMode, MatchSubTab, LocalState } from './types';
+import type { NavTab, StateView, MatchSubTab, LocalState } from './types';
 import { DEFAULT_STAGES, DEFAULT_FEARS, DEFAULT_PITCHES, SHEET_ID } from './constants';
 import { useSheets } from './hooks/useSheets';
 import { Sidebar } from './components/Sidebar';
 import { MetricsGrid } from './components/MetricsGrid';
 import { Toast } from './components/Toast';
+import { OverviewPage } from './pages/OverviewPage';
 import { FunnelPage } from './pages/FunnelPage';
 import { SourcesPage } from './pages/SourcesPage';
 import { ConversionsPage } from './pages/ConversionsPage';
@@ -13,6 +14,9 @@ import { MatchingPage } from './pages/MatchingPage';
 import { CandidatesPage } from './pages/CandidatesPage';
 import { getFunnelPlanned } from './utils';
 import './index.css';
+
+const DEFAULT_END_DATE = '2026-06-30';
+const LS_END_DATE = 'yw_end_date';
 
 function loadLocalState(): LocalState {
   try {
@@ -34,7 +38,8 @@ function loadLocalState(): LocalState {
 }
 
 const PAGE_TITLES: Record<NavTab, string> = {
-  funnel: 'Pipeline Funnel',
+  overview: 'Project Overview',
+  funnel: 'Pipeline Planner',
   sources: 'Source Channels',
   conversions: 'Conversion Ratios',
   fieldops: 'Field Ops & Roles',
@@ -42,7 +47,6 @@ const PAGE_TITLES: Record<NavTab, string> = {
   candidates: 'Candidate Tracker',
 };
 
-// Shorter labels for narrow screens
 const STATE_TABS: { value: StateView; label: string; shortLabel: string }[] = [
   { value: 'all', label: 'All States', shortLabel: 'All' },
   { value: 'rj', label: 'Rajasthan → Delhi NCR', shortLabel: 'Rajasthan' },
@@ -52,16 +56,23 @@ const STATE_TABS: { value: StateView; label: string; shortLabel: string }[] = [
 
 export default function App() {
   const { data, status, lastRefresh, debugLog, fetchAllSheets } = useSheets();
-  const [navTab, setNavTab] = useState<NavTab>('funnel');
+  const [navTab, setNavTab] = useState<NavTab>('overview');
   const [view, setView] = useState<StateView>('all');
-  const [funnelMode, setFunnelMode] = useState<FunnelMode>('actuals');
   const [matchSubTab, setMatchSubTab] = useState<MatchSubTab>('match');
   const [showDebug, setShowDebug] = useState(false);
   const [toastVisible, setToastVisible] = useState(false);
   const [localState, setLocalState] = useState<LocalState>(loadLocalState);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [endDate, setEndDate] = useState<string>(() => {
+    return localStorage.getItem(LS_END_DATE) || DEFAULT_END_DATE;
+  });
 
   useEffect(() => { fetchAllSheets(); }, [fetchAllSheets]);
+
+  const handleSetEndDate = useCallback((d: string) => {
+    setEndDate(d);
+    localStorage.setItem(LS_END_DATE, d);
+  }, []);
 
   const showToast = useCallback(() => setToastVisible(true), []);
 
@@ -108,13 +119,13 @@ export default function App() {
       color: fp[fp.length - 1] >= target ? '#0F6E56' : '#E8601C',
     },
     {
-      label: 'Actual leads',
+      label: 'Active leads',
       value: al != null ? Number(al).toLocaleString() : '—',
-      sub: 'from tracker',
+      sub: 'active candidates at lead stage',
       color: al ? undefined : '#4D6A88',
     },
     {
-      label: 'Actual migrations',
+      label: 'Migrations',
       value: am != null ? Number(am).toLocaleString() : '—',
       sub: am != null ? `of ${target} · ${Math.round(am / target * 100)}%` : 'no data yet',
       color: am != null ? (am >= target ? '#0F6E56' : '#E8601C') : '#9B9B98',
@@ -132,11 +143,8 @@ export default function App() {
   ];
 
   return (
-    // On mobile: single-column block layout (sidebar overlays via fixed position)
-    // On md+: 2-column grid with sticky sidebar
     <div className="min-h-screen md:grid md:grid-cols-[220px_1fr]">
 
-      {/* Mobile backdrop — tap to close sidebar */}
       {mobileMenuOpen && (
         <div
           className="fixed inset-0 bg-black/60 z-20 md:hidden"
@@ -159,7 +167,6 @@ export default function App() {
         {/* Page header */}
         <div className="flex items-center justify-between mb-5 gap-3 flex-wrap">
           <div className="flex items-center gap-3 min-w-0">
-            {/* Hamburger — mobile only */}
             <button
               className="md:hidden btn btn-sm px-2 flex-shrink-0"
               onClick={() => setMobileMenuOpen(true)}
@@ -195,7 +202,7 @@ export default function App() {
           <div className="debug-panel mb-3">{debugLog.join('\n') || 'No debug info yet.'}</div>
         )}
 
-        {/* State filter tabs — short labels on mobile, full on sm+ */}
+        {/* State filter tabs */}
         <div className="flex gap-1.5 mb-5 flex-wrap">
           {STATE_TABS.map((t) => (
             <button
@@ -215,13 +222,20 @@ export default function App() {
 
         <MetricsGrid metrics={metrics} />
 
+        {navTab === 'overview' && (
+          <OverviewPage
+            data={data}
+            view={view}
+            endDate={endDate}
+            setEndDate={handleSetEndDate}
+          />
+        )}
         {navTab === 'funnel' && (
           <FunnelPage
             data={data}
             view={view}
-            funnelMode={funnelMode}
-            setFunnelMode={setFunnelMode}
             gsStatus={status}
+            endDate={endDate}
           />
         )}
         {navTab === 'sources' && <SourcesPage data={data} view={view} />}

@@ -1,4 +1,4 @@
-export type NavTab = 'funnel' | 'sources' | 'conversions' | 'fieldops' | 'matching' | 'candidates';
+export type NavTab = 'overview' | 'funnel' | 'sources' | 'conversions' | 'fieldops' | 'matching' | 'candidates';
 export type StateView = 'all' | 'rj' | 'od' | 'jh';
 export type FunnelMode = 'planning' | 'actuals';
 export type MatchSubTab = 'match' | 'employers';
@@ -116,10 +116,28 @@ export interface Candidate {
   remarks: string;
 }
 
+export interface WeeklyTarget {
+  week_start: string;
+  week_end: string;
+  rj: number;
+  od: number;
+  jh: number;
+}
+
+export interface CalendarWeek {
+  week_start: string;
+  week_end: string;
+  label: string;
+  isCurrent: boolean;
+  isPast: boolean;
+  weekNum: number;
+}
+
 export interface DataState {
   actuals: { rj: Actuals; od: Actuals; jh: Actuals };
   conv: Record<string, number>;
   targets: { rj: number; od: number; jh: number };
+  weeklyTargets: WeeklyTarget[];
   sources: { rj: Source[]; od: Source[]; jh: Source[] };
   employers: Employer[];
   profiles: SkillProfile[];

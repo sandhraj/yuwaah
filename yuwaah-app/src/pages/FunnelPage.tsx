@@ -1,280 +1,266 @@
-import type { DataState, FunnelMode } from '../types';
+import { useState } from 'react';
+import type { DataState, StateView, WeeklyTarget } from '../types';
 import { STAGE_DEFS, CONV_ORDER, SHEET_ID } from '../constants';
-import { getFunnelPlanned, calcConv } from '../utils';
+import { getFunnelBackCalc, calcConv, computeCalendarWeeks } from '../utils';
 import { FunnelVizH } from '../components/FunnelVizH';
 import type { FunnelBand, ConvRate } from '../components/FunnelVizH';
 
 interface FunnelPageProps {
   data: DataState;
-  view: string;
-  funnelMode: FunnelMode;
-  setFunnelMode: (m: FunnelMode) => void;
+  view: StateView;
   gsStatus: string;
+  endDate: string;
 }
 
-export function FunnelPage({ data, view, funnelMode, setFunnelMode, gsStatus }: FunnelPageProps) {
-  const getActuals = () => {
-    if (view === 'all') {
-      const c: Record<string, number | string | null> = { last_updated: null };
-      STAGE_DEFS.forEach((s) => { c[s.key] = null; });
-      ['rj', 'od', 'jh'].forEach((st) => {
-        const a = data.actuals[st as 'rj' | 'od' | 'jh'] || {};
-        STAGE_DEFS.forEach((s) => {
-          const v = a[s.key];
-          if (v != null) c[s.key] = ((c[s.key] as number) || 0) + Number(v);
-        });
-        if (a.last_updated && (!c.last_updated || String(a.last_updated) > String(c.last_updated))) {
-          c.last_updated = a.last_updated;
-        }
-      });
-      return c;
+const STATE_COLOR: Record<string, string> = { rj: '#1ED9BC', od: '#4A9AE8', jh: '#8B6AEA' };
+const STATE_LABEL: Record<string, string> = { rj: 'Rajasthan', od: 'Odisha', jh: 'Jharkhand' };
+const STATES = ['rj', 'od', 'jh'] as const;
+
+type StateKey = 'rj' | 'od' | 'jh';
+
+function getWeeklyTargetForState(
+  weekStart: string,
+  state: StateKey,
+  weeklyTargets: WeeklyTarget[],
+  targets: { rj: number; od: number; jh: number },
+  totalWeeks: number,
+): number {
+  const sheet = weeklyTargets.find((w) => w.week_start === weekStart);
+  if (sheet) return sheet[state];
+  return Math.ceil(targets[state] / (totalWeeks || 1));
+}
+
+export function FunnelPage({ data, view, gsStatus, endDate }: FunnelPageProps) {
+  const [selectedWeek, setSelectedWeek] = useState<string>('overall');
+
+  const weeks = computeCalendarWeeks(endDate);
+  const totalWeeks = weeks.length || 1;
+  const visibleStates: StateKey[] = view === 'all' ? [...STATES] : [view as StateKey];
+
+  // --- Planning target for selected period ---
+  const planningTarget = (() => {
+    if (selectedWeek === 'overall') {
+      return visibleStates.reduce((s, st) => s + (data.targets[st] || 0), 0);
     }
-    return data.actuals[view as 'rj' | 'od' | 'jh'] || {};
-  };
-
-  const getUniverse = () => {
-    const sources =
-      view === 'all'
-        ? [...data.sources.rj, ...data.sources.od, ...data.sources.jh]
-        : data.sources[view as 'rj' | 'od' | 'jh'] || [];
-    return sources.reduce((a, s) => a + Number((s as Record<string, string>)['vol'] || 0), 0);
-  };
-
-  const getTarget = () => {
-    if (view === 'all') return Object.values(data.targets).reduce((a, v) => a + v, 0);
-    return data.targets[view as 'rj' | 'od' | 'jh'] || 0;
-  };
-
-  const act = getActuals();
-  const universe = getUniverse();
-  const target = getTarget();
-  const fp = getFunnelPlanned(universe, data.conv);
-  const am = act['migrated'] as number | null;
-  const al = act['leads'] as number | null;
-  const oac = al && am ? ((am / al) * 100).toFixed(1) : null;
-
-  // Build funnel bands based on mode + state view
-  const funnelBands: FunnelBand[] = (() => {
-    if (funnelMode === 'planning') {
-      return [{ id: 'planned', label: 'Planned', color: '#E8601C', stages: fp }];
-    }
-    if (view === 'all') {
-      return (
-        [
-          { id: 'rj', label: 'Rajasthan', color: '#1ED9BC' },
-          { id: 'od', label: 'Odisha', color: '#4A9AE8' },
-          { id: 'jh', label: 'Jharkhand', color: '#8B6AEA' },
-        ] as const
-      )
-        .map((bd) => ({
-          ...bd,
-          stages: STAGE_DEFS.map((s) => {
-            const v = data.actuals[bd.id as 'rj' | 'od' | 'jh']?.[s.key];
-            return v != null ? Number(v) : null;
-          }),
-        }))
-        .filter((b) => b.stages.some((v) => v != null));
-    }
-    const sa = data.actuals[view as 'rj' | 'od' | 'jh'] || {};
-    const colorMap: Record<string, string> = { rj: '#1ED9BC', od: '#4A9AE8', jh: '#8B6AEA' };
-    const labelMap: Record<string, string> = { rj: 'Rajasthan', od: 'Odisha', jh: 'Jharkhand' };
-    return [
-      {
-        id: view,
-        label: labelMap[view] || view,
-        color: colorMap[view] || '#4A9AE8',
-        stages: STAGE_DEFS.map((s) => {
-          const v = sa[s.key];
-          return v != null ? Number(v) : null;
-        }),
-      },
-    ];
+    return visibleStates.reduce(
+      (s, st) => s + getWeeklyTargetForState(selectedWeek, st, data.weeklyTargets, data.targets, totalWeeks),
+      0,
+    );
   })();
 
-  // Conversion rates for funnel labels
-  const funnelConvRates: ConvRate[] = CONV_ORDER.map((key, i) => ({
-    actual:
-      funnelMode === 'actuals'
-        ? calcConv(act as Record<string, number | null>, STAGE_DEFS[i].key, STAGE_DEFS[i + 1].key)
-        : null,
+  // Back-calculated planning funnel
+  const planStages = getFunnelBackCalc(planningTarget, data.conv);
+  const planBands: FunnelBand[] = [
+    { id: 'planned', label: 'Required pipeline', color: '#E8601C', stages: planStages },
+  ];
+  const planConvRates: ConvRate[] = CONV_ORDER.map((key) => ({
+    actual: null,
     planned: data.conv[key] ?? null,
   }));
 
-  const modeToggle = (
-    <div className="flex gap-2 items-center mb-4 flex-wrap">
-      <div className="flex bg-bg-2 border border-border rounded-md p-0.5 gap-0.5">
-        {(['planning', 'actuals'] as FunnelMode[]).map((m) => (
-          <button
-            key={m}
-            onClick={() => setFunnelMode(m)}
-            className={`px-3.5 py-1.5 rounded-sm text-xs cursor-pointer border-none font-sans transition-all duration-150 ${
-              funnelMode === m
-                ? 'bg-bg-3 text-text font-medium'
-                : 'bg-transparent text-text-2'
-            }`}
-          >
-            {m === 'planning' ? '📊 Planning' : '📋 Actuals'}
-          </button>
-        ))}
-      </div>
-      {act.last_updated && (
-        <span className="text-[11px] text-text-3 ml-auto">
-          Sheet updated: {String(act.last_updated)}
-        </span>
-      )}
-    </div>
-  );
+  // --- Actuals bands ---
+  const actualsBands: FunnelBand[] = visibleStates
+    .map((st) => ({
+      id: st,
+      label: STATE_LABEL[st],
+      color: STATE_COLOR[st],
+      stages: STAGE_DEFS.map((s) => {
+        const v = data.actuals[st]?.[s.key];
+        return v != null ? Number(v) : null;
+      }),
+    }))
+    .filter((b) => b.stages.some((v) => v != null && v > 0));
 
-  if (funnelMode === 'planning') {
-    return (
-      <div className="card">
-        <div className="card-title">Pipeline funnel — planning view</div>
-        {modeToggle}
-        <div className="bg-amber-bg border-l-4 border-nudge-border px-3 py-2 rounded-r text-[11px] text-amber-custom mb-4">
-          Planning view — projections based on planned conversion ratios. Switch to Actuals to see live performance.
-        </div>
-        <FunnelVizH
-          stageDefs={STAGE_DEFS}
-          bands={funnelBands}
-          convRates={funnelConvRates}
-          mode="planning"
-        />
-      </div>
-    );
-  }
+  const combinedActuals = (() => {
+    const c: Record<string, number | null> = {};
+    STAGE_DEFS.forEach((s) => { c[s.key] = null; });
+    visibleStates.forEach((st) => {
+      const a = data.actuals[st] || {};
+      STAGE_DEFS.forEach((s) => {
+        const v = a[s.key];
+        if (v != null) c[s.key] = ((c[s.key] as number) || 0) + Number(v);
+      });
+    });
+    return c;
+  })();
 
-  // Actuals mode
-  const bClass =
-    am != null
-      ? am / target >= 0.9
-        ? 'bg-green-bg border border-green-border'
-        : am / target >= 0.7
-        ? 'bg-amber-bg border border-nudge-border'
-        : 'bg-red-bg border border-[#A03030]'
-      : 'bg-amber-bg border border-nudge-border';
+  const actualsConvRates: ConvRate[] = CONV_ORDER.map((key, i) => ({
+    actual: calcConv(combinedActuals as Record<string, number | null>, STAGE_DEFS[i].key, STAGE_DEFS[i + 1].key),
+    planned: data.conv[key] ?? null,
+  }));
 
-  const stateRows = (['rj', 'od', 'jh'] as const).map((st) => {
+  // State-wise breakdown table
+  const stateRows = STATES.map((st) => {
     const a = data.actuals[st] || {};
-    const labels = { rj: 'Rajasthan', od: 'Odisha', jh: 'Jharkhand' };
-    const leads = a.leads != null ? Number(a.leads).toLocaleString() : '—';
-    const migrated = a.migrated != null ? Number(a.migrated).toLocaleString() : '—';
-    const conv =
-      a.leads && a.migrated
-        ? ((Number(a.migrated) / Number(a.leads)) * 100).toFixed(1) + '%'
-        : '—';
+    const leads = a.leads != null ? Number(a.leads) : null;
+    const migrated = a.migrated != null ? Number(a.migrated) : null;
     const tgt = data.targets[st] || 0;
-    const pct = a.migrated != null ? Math.round((Number(a.migrated) / tgt) * 100) + '%' : '—';
-    const gap = a.migrated != null ? tgt - Number(a.migrated) : null;
-    const pc =
-      a.migrated != null
-        ? Number(a.migrated) >= tgt
-          ? 'pill-good'
-          : Number(a.migrated) >= tgt * 0.8
-          ? 'pill-warn'
-          : 'pill-bad'
-        : 'pill-na';
+    const conv = leads && migrated ? ((migrated / leads) * 100).toFixed(1) + '%' : '—';
+    const pct = migrated != null ? Math.round((migrated / tgt) * 100) : null;
+    const pc = pct != null ? (pct >= 100 ? 'pill-good' : pct >= 80 ? 'pill-warn' : 'pill-bad') : 'pill-na';
+    const gap = migrated != null ? tgt - migrated : null;
     return (
       <tr key={st}>
-        <td className="font-medium">{labels[st]}</td>
-        <td className="text-right">{leads}</td>
-        <td className="text-right">{migrated}</td>
+        <td className="font-medium" style={{ color: STATE_COLOR[st] }}>{STATE_LABEL[st]}</td>
+        <td className="text-right">{leads != null ? leads.toLocaleString() : '—'}</td>
+        <td className="text-right">{migrated != null ? migrated.toLocaleString() : '—'}</td>
         <td className="text-right">{tgt}</td>
         <td className="text-right">
-          <span className={`pill ${pc}`}>{pct}</span>
+          <span className={`pill ${pc}`}>{pct != null ? pct + '%' : '—'}</span>
         </td>
         <td className="text-right text-text-2 text-[11px]">
-          {gap != null ? (gap <= 0 ? '✓ on track' : `−${gap} short`) : '—'}
+          {gap != null ? (gap <= 0 ? '✓' : `−${gap}`) : '—'}
         </td>
         <td className="text-right">{conv}</td>
-        <td className="text-text-3 text-[10px] pl-4 whitespace-nowrap">{String(a.last_updated || '—')}</td>
       </tr>
     );
   });
 
+  const selectedWeekLabel = selectedWeek === 'overall'
+    ? 'Overall project'
+    : weeks.find((w) => w.week_start === selectedWeek)?.label ?? selectedWeek;
+
   return (
-    <div className="card">
-      <div className="card-title">Pipeline funnel — actuals view</div>
-      {modeToggle}
+    <div className="space-y-4">
 
-      {/* Summary metrics bar */}
-      <div className={`rounded-lg p-4 px-5 flex gap-6 flex-wrap items-center mb-4 ${bClass}`}>
-        <div className="min-w-0">
-          <div className="text-2xl font-semibold tracking-tight">
-            {am != null ? Number(am).toLocaleString() : '—'}
+      {/* Week selector bar */}
+      <div className="card">
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2">
+            <span className="text-[11px] text-text-2 whitespace-nowrap">Planning period:</span>
+            <select
+              value={selectedWeek}
+              onChange={(e) => setSelectedWeek(e.target.value)}
+              className="border border-border rounded-md px-2.5 py-1.5 text-xs bg-bg-2 text-text cursor-pointer"
+            >
+              <option value="overall">Overall project</option>
+              {weeks.map((w) => (
+                <option key={w.week_start} value={w.week_start}>
+                  {w.isCurrent ? '→ ' : w.isPast ? '✓ ' : ''}W{w.weekNum}: {w.label}
+                  {w.isCurrent ? ' (this week)' : ''}
+                </option>
+              ))}
+            </select>
           </div>
-          <div className="text-[11px] text-text-2 mt-0.5">Actual migrations</div>
-        </div>
-        <div className="min-w-0">
-          <div className="text-2xl font-semibold tracking-tight">{target}</div>
-          <div className="text-[11px] text-text-2 mt-0.5">Programme target</div>
-        </div>
-        <div className="min-w-0">
-          <div className="text-2xl font-semibold tracking-tight">
-            {am != null ? Math.round((am / target) * 100) + '%' : '—'}
+          <div className="flex items-center gap-3 text-[11px] text-text-2">
+            <span>
+              Migration target for this period:{' '}
+              <strong className="text-text">{planningTarget.toLocaleString()}</strong>
+            </span>
+            {selectedWeek !== 'overall' && visibleStates.length > 1 && (
+              <span className="text-text-3">
+                ({visibleStates.map((st) => `${st.toUpperCase()}: ${getWeeklyTargetForState(selectedWeek, st, data.weeklyTargets, data.targets, totalWeeks)}`).join(' · ')})
+              </span>
+            )}
           </div>
-          <div className="text-[11px] text-text-2 mt-0.5">% of target</div>
-        </div>
-        <div className="min-w-0">
-          <div className="text-2xl font-semibold tracking-tight">{oac ? oac + '%' : '—'}</div>
-          <div className="text-[11px] text-text-2 mt-0.5">Lead → join rate</div>
-        </div>
-        <div className="ml-auto text-[11px] text-text-2 italic shrink-0">
-          {gsStatus === 'live' ? '🟢 Live from Google Sheets' : 'Cached data'}
+          <span className="ml-auto text-[10px] text-text-3">
+            {gsStatus === 'live' ? '🟢 Live' : 'Cached'}
+          </span>
         </div>
       </div>
 
-      {/* Performance legend */}
-      <div className="flex gap-2 flex-wrap items-center mb-3 text-[11px] text-text-2">
-        <span className="pill pill-good">On/above plan</span>
-        <span className="pill pill-warn">Within 20% of plan</span>
-        <span className="pill pill-bad">Below plan</span>
+      {/* Side by side: Planning | Actuals */}
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
+
+        {/* Planning panel */}
+        <div className="card">
+          <div className="card-title">Planning — required pipeline</div>
+          <div className="text-[11px] text-text-2 mb-1">
+            <span className="font-medium text-orange">{selectedWeekLabel}</span> · target: {planningTarget.toLocaleString()} migrations
+          </div>
+          <div className="text-[11px] text-text-3 mb-3">
+            Back-calculated from migration target using planned stage conversion ratios
+          </div>
+          <FunnelVizH
+            stageDefs={STAGE_DEFS}
+            bands={planBands}
+            convRates={planConvRates}
+            mode="planning"
+          />
+          <div className="mt-3 border-t border-border pt-3">
+            <div className="text-[10px] text-text-3 mb-2 font-medium uppercase tracking-wider">Required counts at each stage</div>
+            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+              {STAGE_DEFS.map((s, i) => (
+                <div key={s.key} className="flex justify-between text-[11px]">
+                  <span className="text-text-2">{s.label}</span>
+                  <span className="font-medium text-orange">{planStages[i].toLocaleString()}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Actuals panel */}
+        <div className="card">
+          <div className="card-title">Current pipeline — active candidates</div>
+          <div className="text-[11px] text-text-2 mb-1">
+            Point-in-time count of active candidates at each stage
+          </div>
+          <div className="text-[11px] text-text-3 mb-3">
+            Only Active status candidates counted · green ≥ planned · amber within 20% · red below
+          </div>
+          {actualsBands.length > 0 ? (
+            <FunnelVizH
+              stageDefs={STAGE_DEFS}
+              bands={actualsBands}
+              convRates={actualsConvRates}
+              mode="actuals"
+            />
+          ) : (
+            <div className="text-center py-12 text-text-2 text-sm">
+              No active candidate data yet — click Refresh to load.
+            </div>
+          )}
+          {actualsBands.length > 0 && (
+            <div className="mt-3 border-t border-border pt-3">
+              <div className="text-[10px] text-text-3 mb-2 font-medium uppercase tracking-wider">Active candidates by stage</div>
+              <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+                {STAGE_DEFS.map((s) => {
+                  const tot = visibleStates.reduce((sum, st) => sum + Number(data.actuals[st]?.[s.key] ?? 0), 0);
+                  return (
+                    <div key={s.key} className="flex justify-between text-[11px]">
+                      <span className="text-text-2">{s.label}</span>
+                      <span className="font-medium">{tot > 0 ? tot.toLocaleString() : '—'}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
       </div>
 
-      {/* Horizontal flowing funnel */}
-      <FunnelVizH
-        stageDefs={STAGE_DEFS}
-        bands={funnelBands}
-        convRates={funnelConvRates}
-        mode="actuals"
-      />
-
-      {/* State-wise breakdown table */}
-      <div className="mt-6">
+      {/* State breakdown */}
+      <div className="card">
         <div className="card-title">State-wise breakdown</div>
         <div className="overflow-x-auto">
           <table className="w-full border-collapse text-xs">
             <thead>
               <tr>
-                {['State', 'Leads', 'Migrated', 'Target', '% Target', 'Gap', 'Conv.', 'Updated'].map(
-                  (h, i) => (
-                    <th
-                      key={h}
-                      className={`text-left p-1.5 px-2.5 text-[10px] font-semibold tracking-[0.05em] text-text-3 border-b border-border uppercase ${
-                        i > 0 ? 'text-right' : ''
-                      } ${i === 7 ? 'pl-4' : ''}`}
-                    >
-                      {h}
-                    </th>
-                  ),
-                )}
+                {['State', 'Active leads', 'Migrated', 'Target', '% Target', 'Gap', 'Conv.'].map((h, i) => (
+                  <th
+                    key={h}
+                    className={`text-left p-1.5 px-2.5 text-[10px] font-semibold tracking-[0.05em] text-text-3 border-b border-border uppercase ${i > 0 ? 'text-right' : ''}`}
+                  >
+                    {h}
+                  </th>
+                ))}
               </tr>
             </thead>
             <tbody>{stateRows}</tbody>
           </table>
         </div>
-      </div>
-
-      <div className="mt-3 text-[11px] text-text-2">
-        To update: edit the <strong>Actuals</strong> sheet in{' '}
-        <a
-          href={`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`}
-          target="_blank"
-          rel="noreferrer"
-          className="text-orange"
-        >
-          Google Sheets ↗
-        </a>{' '}
-        → click Refresh in the sidebar.
+        <div className="mt-3 text-[11px] text-text-2">
+          Actuals sourced from active candidates in state tracker sheets ·{' '}
+          <a
+            href={`https://docs.google.com/spreadsheets/d/${SHEET_ID}/edit`}
+            target="_blank"
+            rel="noreferrer"
+            className="text-orange"
+          >
+            Open Sheets ↗
+          </a>
+        </div>
       </div>
     </div>
   );

@@ -2,14 +2,16 @@ import { useState, useCallback } from 'react';
 import type { DataState, GSStatus } from '../types';
 import { SHEET_URLS } from '../constants';
 import {
-  parseCSV, parseActuals, parseConv, parseTargets,
-  parseSources, parseEmployers, parseProfiles, parseAssignments, parseCandidates,
+  parseCSV, parseConv, parseTargets,
+  parseSources, parseEmployers, parseProfiles, parseAssignments,
+  parseCandidates, parseCandidateActuals, parseWeeklyTargets,
 } from '../utils';
 
 const initialData: DataState = {
   actuals: { rj: {}, od: {}, jh: {} },
   conv: {},
   targets: { rj: 280, od: 200, jh: 120 },
+  weeklyTargets: [],
   sources: { rj: [], od: [], jh: [] },
   employers: [],
   profiles: [],
@@ -37,12 +39,15 @@ export function useSheets() {
     const log: string[] = [];
     try {
       log.push('Fetching sheets…');
-      const [actR, convR, tgtR, srcRJ, srcOD, srcJH, empR, profR, asgnR] = await Promise.all([
-        fetchSheet('Actuals'), fetchSheet('Conv_Ratios'), fetchSheet('Targets'),
+
+      // Core sheets (non-candidate)
+      const [convR, tgtR, srcRJ, srcOD, srcJH, empR, profR, asgnR, wkTgtR] = await Promise.all([
+        fetchSheet('Conv_Ratios'), fetchSheet('Targets'),
         fetchSheet('Sources_RJ'), fetchSheet('Sources_OD'), fetchSheet('Sources_JH'),
         fetchSheet('Employers'), fetchSheet('Skill_Profiles'), fetchSheet('Assignments'),
+        fetchSheet('Weekly_Targets').catch(() => [] as string[][]),
       ]);
-      const actuals = parseActuals(actR, log);
+
       const conv = parseConv(convR);
       const targets = parseTargets(tgtR);
       const sourcesRJ = parseSources(srcRJ);
@@ -51,28 +56,48 @@ export function useSheets() {
       const employers = parseEmployers(empR);
       const profiles = parseProfiles(profR);
       const assignments = parseAssignments(asgnR);
-      // Candidate tabs are optional — each fetched independently, skipped if GID not yet set
-      let candidates = initialData.candidates;
-      try {
-        const results = await Promise.allSettled([
-          fetchSheet('Candidates_OD'),
-          fetchSheet('Candidates_RJ'),
-          fetchSheet('Candidates_JH'),
-        ]);
-        candidates = results.flatMap((r) => r.status === 'fulfilled' ? parseCandidates(r.value) : []);
-        const counts = results.map((r, i) =>
-          `${['OD','RJ','JH'][i]}=${r.status === 'fulfilled' ? parseCandidates(r.value).length : 'skip'}`
-        );
-        log.push(`Candidates ${counts.join(' ')}`);
-      } catch (_) {
-        log.push('Candidates tabs not yet configured — skipping');
-      }
+      const weeklyTargets = parseWeeklyTargets(wkTgtR);
+      log.push(`Weekly targets: ${weeklyTargets.length} rows`);
+
+      // Candidate sheets — compute actuals from active candidates by stage
+      // Column indices (0-based): AD=29, AE=30, AF=31, AG=32
+      const [odResult, rjResult, jhResult] = await Promise.allSettled([
+        fetchSheet('Candidates_OD'),
+        fetchSheet('Candidates_RJ'),
+        fetchSheet('Candidates_JH'),
+      ]);
+
+      const odRows = odResult.status === 'fulfilled' ? odResult.value : [];
+      const rjRows = rjResult.status === 'fulfilled' ? rjResult.value : [];
+      const jhRows = jhResult.status === 'fulfilled' ? jhResult.value : [];
+
+      // OD: Stage=AF(31), Status=AG(32)
+      // RJ: Stage=AD(29), Status=AE(30)
+      // JH: Stage=AF(31), Status=AG(32)
+      const actualsOD = parseCandidateActuals(odRows, 31, 32);
+      const actualsRJ = parseCandidateActuals(rjRows, 29, 30);
+      const actualsJH = parseCandidateActuals(jhRows, 31, 32);
+
+      const counts = [odResult, rjResult, jhResult].map((r, i) =>
+        `${['OD', 'RJ', 'JH'][i]}=${r.status === 'fulfilled' ? r.value.length - 1 : 'skip'}`
+      );
+      log.push(`Candidate rows ${counts.join(' ')}`);
+      log.push(`Active counts — RJ migrated=${actualsRJ.migrated ?? 0} OD migrated=${actualsOD.migrated ?? 0} JH migrated=${actualsJH.migrated ?? 0}`);
+
+      const candidates = [
+        ...parseCandidates(odRows),
+        ...parseCandidates(rjRows),
+        ...parseCandidates(jhRows),
+      ];
+      log.push(`Tracker candidates: ${candidates.length}`);
       log.push(`Sources RJ=${sourcesRJ.length} OD=${sourcesOD.length} JH=${sourcesJH.length}`);
       log.push(`Employers=${employers.length} Profiles=${profiles.length}`);
+
       setData({
-        actuals,
+        actuals: { rj: actualsRJ, od: actualsOD, jh: actualsJH },
         conv,
         targets,
+        weeklyTargets,
         sources: { rj: sourcesRJ as never, od: sourcesOD as never, jh: sourcesJH as never },
         employers,
         profiles,

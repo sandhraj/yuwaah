@@ -17,6 +17,21 @@ export const SHEET_URLS: Record<string, string> = {
   Candidates_OD: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpET-ikaApsi7jA8iMDD0Ou2o9dZbMIXnCgx2tTSufCcFKIYsD6Dl2dbN-nJgLsPVSypDVTg7ap8bZ/pub?gid=924876789&single=true&output=csv',
   Candidates_RJ: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpET-ikaApsi7jA8iMDD0Ou2o9dZbMIXnCgx2tTSufCcFKIYsD6Dl2dbN-nJgLsPVSypDVTg7ap8bZ/pub?gid=1861962451&single=true&output=csv',
   Candidates_JH: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpET-ikaApsi7jA8iMDD0Ou2o9dZbMIXnCgx2tTSufCcFKIYsD6Dl2dbN-nJgLsPVSypDVTg7ap8bZ/pub?gid=1861412633&single=true&output=csv',
+  Weekly_Targets: 'https://docs.google.com/spreadsheets/d/e/2PACX-1vTpET-ikaApsi7jA8iMDD0Ou2o9dZbMIXnCgx2tTSufCcFKIYsD6Dl2dbN-nJgLsPVSypDVTg7ap8bZ/pub?gid=403137229&single=true&output=csv',
+};
+
+export const STAGE_TEXT_MAP: Record<string, string> = {
+  'Lead pool': 'leads',
+  'Outreach': 'outreach',
+  'Responded': 'responded',
+  'Pre-qual.': 'prequalified',
+  'Counselled': 'counselled',
+  'Parent appr.': 'parent_approved',
+  'Docs': 'docs_complete',
+  'Interview': 'interview',
+  'Selected': 'selected',
+  'Offer': 'offer_released',
+  'Migrated': 'migrated',
 };
 
 export const CHANNEL_COLORS: Record<string, string> = {

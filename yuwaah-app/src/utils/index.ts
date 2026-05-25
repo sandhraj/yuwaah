@@ -1,5 +1,5 @@
-import type { Actuals, Candidate, Employer, SkillProfile } from '../types';
-import { STAGE_KEYS, CONV_ORDER, DEFAULT_CONV } from '../constants';
+import type { Actuals, Candidate, CalendarWeek, Employer, SkillProfile, WeeklyTarget } from '../types';
+import { STAGE_KEYS, CONV_ORDER, DEFAULT_CONV, STAGE_TEXT_MAP } from '../constants';
 
 export function parseCSV(text: string): string[][] {
   const rows: string[][] = [];
@@ -242,6 +242,115 @@ export function parseCandidates(rows: string[][]): Candidate[] {
       };
     })
     .filter((c) => c.name);
+}
+
+export function parseCandidateActuals(
+  rows: string[][],
+  fallbackStageCol: number,
+  fallbackStatusCol: number,
+): Actuals {
+  const counts: Record<string, number> = {};
+  STAGE_KEYS.forEach((k) => { counts[k] = 0; });
+
+  let hi = -1;
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].some((c) => c?.trim() === 'Candidate Name' || c?.trim() === 'name')) { hi = i; break; }
+  }
+  if (hi === -1) return counts as Actuals;
+
+  const hIdx: Record<string, number> = {};
+  rows[hi].forEach((h, i) => { if (h?.trim()) hIdx[h.trim().toLowerCase()] = i; });
+
+  const stageCol = hIdx['current stage'] ?? hIdx['current_stage'] ?? fallbackStageCol;
+  const statusCol = hIdx['current status'] ?? hIdx['current_status'] ?? fallbackStatusCol;
+
+  for (let i = hi + 1; i < rows.length; i++) {
+    const row = rows[i];
+    const status = (row[statusCol] || '').trim();
+    if (status.toLowerCase() !== 'active') continue;
+    const stageText = (row[stageCol] || '').trim();
+    const stageKey = STAGE_TEXT_MAP[stageText];
+    if (stageKey) counts[stageKey] = (counts[stageKey] || 0) + 1;
+  }
+
+  return counts as Actuals;
+}
+
+export function parseWeeklyTargets(rows: string[][]): WeeklyTarget[] {
+  let hi = -1;
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i][0]?.trim().toLowerCase() === 'week_start') { hi = i; break; }
+  }
+  if (hi === -1) return [];
+  return rows.slice(hi + 1)
+    .filter((r) => r[0]?.trim())
+    .map((r) => ({
+      week_start: r[0]?.trim() || '',
+      week_end: r[1]?.trim() || '',
+      rj: parseNum(r[2]) ?? 0,
+      od: parseNum(r[3]) ?? 0,
+      jh: parseNum(r[4]) ?? 0,
+    }));
+}
+
+export function getFunnelBackCalc(migrationTarget: number, conv: Record<string, number>): number[] {
+  const stages = new Array(STAGE_KEYS.length).fill(0);
+  stages[STAGE_KEYS.length - 1] = migrationTarget;
+  for (let i = STAGE_KEYS.length - 2; i >= 0; i--) {
+    const ratio = (conv[CONV_ORDER[i]] || 1) / 100;
+    stages[i] = Math.ceil(stages[i + 1] / ratio);
+  }
+  return stages;
+}
+
+function fmtDateShort(d: Date): string {
+  return d.toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
+
+export function computeCalendarWeeks(endDateStr: string): CalendarWeek[] {
+  if (!endDateStr) return [];
+  const [ey, em, ed] = endDateStr.split('-').map(Number);
+  const endDate = new Date(ey, em - 1, ed, 23, 59, 59);
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  const monday = new Date(today);
+  const dow = monday.getDay();
+  monday.setDate(monday.getDate() - (dow === 0 ? 6 : dow - 1));
+
+  if (monday > endDate) return [];
+
+  const weeks: CalendarWeek[] = [];
+  let ws = new Date(monday);
+  let weekNum = 1;
+
+  while (ws <= endDate) {
+    const we = new Date(ws);
+    we.setDate(ws.getDate() + 6);
+    const actualEnd = we > endDate ? new Date(ey, em - 1, ed) : new Date(we);
+
+    const startStr = ws.toISOString().slice(0, 10);
+    const endStr = actualEnd.toISOString().slice(0, 10);
+    const isCurrent = today >= ws && today <= we;
+    const isPast = we < today && !isCurrent;
+
+    weeks.push({
+      week_start: startStr,
+      week_end: endStr,
+      label: ws.getMonth() === actualEnd.getMonth()
+        ? `${fmtDateShort(ws).split(' ')[0]}–${fmtDateShort(actualEnd)}`
+        : `${fmtDateShort(ws)} – ${fmtDateShort(actualEnd)}`,
+      isCurrent,
+      isPast,
+      weekNum,
+    });
+
+    ws = new Date(ws);
+    ws.setDate(ws.getDate() + 7);
+    weekNum++;
+  }
+
+  return weeks;
 }
 
 export function getFunnelPlanned(universe: number, conv: Record<string, number>): number[] {

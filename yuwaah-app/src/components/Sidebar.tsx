@@ -11,7 +11,8 @@ interface SidebarProps {
 }
 
 const navItems: { key: NavTab; icon: string; label: string; section: string }[] = [
-  { key: 'funnel', icon: '📊', label: 'Pipeline funnel', section: 'Programme' },
+  { key: 'overview', icon: '🏠', label: 'Project overview', section: 'Project' },
+  { key: 'funnel', icon: '📊', label: 'Pipeline planner', section: 'Project' },
   { key: 'sources', icon: '🗺', label: 'Source channels', section: 'Programme' },
   { key: 'conversions', icon: '📈', label: 'Conversion ratios', section: 'Programme' },
   { key: 'candidates', icon: '🧑‍🤝‍🧑', label: 'Candidate tracker', section: 'Programme' },
@@ -20,7 +21,7 @@ const navItems: { key: NavTab; icon: string; label: string; section: string }[] 
 ];
 
 export function Sidebar({ navTab, setNavTab, status, lastRefresh, onRefresh, mobileOpen, onClose }: SidebarProps) {
-  const sections = ['Programme', 'Team', 'Employers'];
+  const sections = ['Project', 'Programme', 'Team', 'Employers'];
 
   const statusText =
     status === 'live'
