@@ -178,6 +178,27 @@ function normState(raw: string): string {
 function deriveCandidateStage(r: Record<string, string>): string {
   const g = (k: string) => (r[k] || '').trim().toLowerCase();
   const has = (k: string) => (r[k] || '').trim() !== '';
+
+  const isDropped = g('current status').startsWith('drop');
+
+  if (isDropped) {
+    // For dropped candidates rely only on concrete milestone columns (dates / done-received
+    // statuses) — the "Current Stage" text field may be stale or cleared after dropping.
+    // Joining date is still valid: they migrated and later dropped from the job.
+    if (has('joining date')) return 'migrated';
+    if (g('offer letter status') === 'received') return 'offer_released';
+    if (g('selection status') === 'selected') return 'selected';
+    if (has('date - interview') || has('job interview')) return 'interview';
+    if (['done', 'received'].includes(g('p2e certification'))) return 'docs_complete';
+    if (g('parents counselling') === 'done') return 'parent_approved';
+    if (has('date - counseling')) return 'counselled';
+    if (g('wysa session') === 'present' || has('date - wysa')) return 'prequalified';
+    if (g('pre screening') === 'done') return 'responded';
+    if (has('mobilisation date')) return 'outreach';
+    return 'leads';
+  }
+
+  // Active candidate — use full cascade including "Current Stage" text hints.
   const cs = g('current stage');
   if (cs === 'migrated' || has('joining date')) return 'migrated';
   if (cs === 'migration stage' || g('offer letter status') === 'received') return 'offer_released';
