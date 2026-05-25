@@ -51,14 +51,21 @@ export function useSheets() {
       const employers = parseEmployers(empR);
       const profiles = parseProfiles(profR);
       const assignments = parseAssignments(asgnR);
-      // Candidates sheet is optional — fetch fails gracefully if GID not yet configured
+      // Candidate tabs are optional — each fetched independently, skipped if GID not yet set
       let candidates = initialData.candidates;
       try {
-        const candR = await fetchSheet('Candidates');
-        candidates = parseCandidates(candR);
-        log.push(`Candidates=${candidates.length}`);
+        const results = await Promise.allSettled([
+          fetchSheet('Candidates_OD'),
+          fetchSheet('Candidates_RJ'),
+          fetchSheet('Candidates_JH'),
+        ]);
+        candidates = results.flatMap((r) => r.status === 'fulfilled' ? parseCandidates(r.value) : []);
+        const counts = results.map((r, i) =>
+          `${['OD','RJ','JH'][i]}=${r.status === 'fulfilled' ? parseCandidates(r.value).length : 'skip'}`
+        );
+        log.push(`Candidates ${counts.join(' ')}`);
       } catch (_) {
-        log.push('Candidates sheet not yet configured — skipping');
+        log.push('Candidates tabs not yet configured — skipping');
       }
       log.push(`Sources RJ=${sourcesRJ.length} OD=${sourcesOD.length} JH=${sourcesJH.length}`);
       log.push(`Employers=${employers.length} Profiles=${profiles.length}`);

@@ -26,8 +26,8 @@ function SetupGuide() {
       <div className="card-title">Candidate tracker — setup</div>
 
       <div className="bg-amber-bg border-l-4 border-nudge-border px-4 py-3 rounded-r text-[12px] text-amber-custom mb-5">
-        <strong>Sheet not yet connected.</strong> Follow the steps below, then update
-        the <code className="bg-bg-3 px-1 rounded">CANDIDATES_GID</code> placeholder in{' '}
+        <strong>Tracker tabs not yet connected.</strong> Follow the three steps below,
+        then update the three GID placeholders in{' '}
         <code className="bg-bg-3 px-1 rounded">src/constants/index.ts</code>.
       </div>
 
@@ -35,87 +35,54 @@ function SetupGuide() {
 
         {/* Step 1 */}
         <div>
-          <p className="font-semibold text-text mb-1">Step 1 — Add a Candidates tab to your Google Sheet</p>
-          <p>Open the dashboard Google Sheet, click the <strong>+</strong> at the bottom, name the tab <strong>Candidates</strong>.</p>
+          <p className="font-semibold text-text mb-2">Step 1 — Copy your tracker tabs into the dashboard Google Sheet</p>
+          <p className="mb-2">
+            Open your tracker spreadsheet and the dashboard spreadsheet side by side.
+            For each state tab, right-click the tab name → <strong>Copy to…</strong> → select the dashboard sheet.
+            Rename each copied tab exactly as shown:
+          </p>
+          <div className="bg-bg-2 border border-border rounded-md p-3 text-[11px] space-y-1">
+            {[
+              ['Odisha tab', 'Candidates_OD'],
+              ['Rajasthan tab', 'Candidates_RJ'],
+              ['Jharkhand tab', 'Candidates_JH'],
+            ].map(([from, to]) => (
+              <div key={to} className="flex items-center gap-3">
+                <span className="text-text-2 w-28">{from}</span>
+                <span className="text-text-3">→</span>
+                <code className="bg-bg-3 px-1.5 py-0.5 rounded text-orange">{to}</code>
+              </div>
+            ))}
+          </div>
+          <p className="mt-2 text-text-3 text-[11px]">
+            No column changes needed — the parser reads every column by its original header name.
+            Odisha and Jharkhand share the same schema. Rajasthan has Counselling and Wysa in a different order — that's fine, the parser handles it.
+          </p>
         </div>
 
         {/* Step 2 */}
         <div>
-          <p className="font-semibold text-text mb-2">Step 2 — Paste your tracker data</p>
-          <p className="mb-2">
-            Your existing tracker has three state tabs (<strong>Odisha</strong>, <strong>Rajasthan</strong>, <strong>Jharkhand</strong>).
-            Copy all rows from each into the Candidates tab. The parser recognises the original column headers automatically — no renaming needed.
-          </p>
-          <div className="bg-bg-2 border border-border rounded-md p-3 overflow-x-auto">
-            <table className="w-full border-collapse text-[10px]">
-              <thead>
-                <tr>
-                  {['Col', 'Header (exact)', 'Notes'].map((h) => (
-                    <th key={h} className="text-left p-1 px-2 text-text-3 uppercase tracking-wide border-b border-border">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {[
-                  ['A', 'Project ID / SAHI Center ID', ''],
-                  ['B', 'SAHI Batch', ''],
-                  ['C', 'Candidate ID', 'e.g. 3000 1000 1156 9026'],
-                  ['D', 'Candidate Name', 'Required — rows without a name are skipped'],
-                  ['E', 'DOB', ''],
-                  ['F', 'Gender', ''],
-                  ['G', 'Contact Number', ''],
-                  ['H', 'Qualification', ''],
-                  ['I', 'Caste', ''],
-                  ['J', 'Mobilisation Date', 'Signals "outreach" stage minimum'],
-                  ['K', 'District', ''],
-                  ['L', 'State', 'ODISHA · Rajasthan · Jharkhand (auto-mapped to od/rj/jh)'],
-                  ['M', 'Pre screening', '"Done" → responded stage'],
-                  ['N', 'Date - Wysa (OD/JH) or Date - Counseling (RJ)', 'OD/JH order'],
-                  ['O', 'Wysa Session (OD/JH) or Parents Counselling (RJ)', '"Present" → prequalified'],
-                  ['P', 'Date - Counseling (OD/JH) or Date - Wysa (RJ)', ''],
-                  ['Q', 'Parents Counselling (OD/JH) or Wysa Session (RJ)', '"Done" → parent_approved'],
-                  ['R', 'Date - P2E', ''],
-                  ['S', 'P2E Certification', '"Done"/"Received" → docs_complete'],
-                  ['T-V', 'Enrollment Form · Sahi Enrolled · Sahi Module', 'Stored, not used for stage'],
-                  ['W', 'Date - Interview', ''],
-                  ['X', 'Job Interview', ''],
-                  ['Y', 'Selection Status', '"Selected" → selected stage'],
-                  ['Z', 'Offer Letter Status', '"Received" → offer_released'],
-                  ['AA', 'Company Name', 'Shown in table'],
-                  ['AB', 'Location', 'City shown in table'],
-                  ['AC-AE', 'Job Type · Company Scale · Company Recognition', ''],
-                  ['AF', 'Current Stage', 'Free text: Migrated / Migration Stage / P2E Certification / …'],
-                  ['AG', 'Current Status', '"Active" or "Dropped"'],
-                  ['AH', 'Travel Date', ''],
-                  ['AI', 'Joining Date', 'Filled → migrated stage'],
-                  ['AJ-AP', 'Family Income · Experience · Dropout Stage · Dropout Reason · Salaries · Exit Type', ''],
-                  ['AQ', 'Last Follow Up date', 'Shown in table'],
-                  ['AR', 'Detailed Remarks', ''],
-                ].map(([col, header, note]) => (
-                  <tr key={col} className="border-b border-border/40">
-                    <td className="p-1 px-2 font-mono text-text-3">{col}</td>
-                    <td className="p-1 px-2 text-orange font-mono text-[10px] whitespace-nowrap">{header}</td>
-                    <td className="p-1 px-2 text-text-3">{note}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <p className="mt-2 text-text-3 text-[11px]">
-            ⚠️ RJ columns N–Q are in a different order (Counseling before Wysa).
-            The parser reads by column <em>name</em>, so paste from OD/JH as-is.
-            For RJ, paste the header row first to set column names, then paste data.
-          </p>
+          <p className="font-semibold text-text mb-2">Step 2 — Publish all three tabs</p>
+          <p className="mb-1">Do this for each tab (<em>Candidates_OD</em>, <em>Candidates_RJ</em>, <em>Candidates_JH</em>):</p>
+          <ol className="list-decimal list-inside space-y-1">
+            <li>File → Share → Publish to web</li>
+            <li>Select the tab from the dropdown → choose <strong>CSV</strong> → click Publish</li>
+            <li>Copy the URL — note the <code className="bg-bg-3 px-1 rounded">gid=XXXXXXX</code> number</li>
+          </ol>
         </div>
 
         {/* Step 3 */}
         <div>
-          <p className="font-semibold text-text mb-1">Step 3 — Publish the tab and update the GID</p>
-          <ol className="list-decimal list-inside space-y-1 text-text-2">
-            <li>File → Share → Publish to web → select <em>Candidates</em> → CSV → Publish</li>
-            <li>Copy the <code className="bg-bg-3 px-1 rounded">gid=XXXXXXX</code> from the URL</li>
-            <li>In <code className="bg-bg-3 px-1 rounded">src/constants/index.ts</code> replace <code className="bg-bg-3 px-1 rounded">CANDIDATES_GID</code> with that number</li>
-          </ol>
+          <p className="font-semibold text-text mb-2">Step 3 — Update the GIDs in constants.ts</p>
+          <p className="mb-2">
+            Open <code className="bg-bg-3 px-1 rounded">src/constants/index.ts</code> and replace each placeholder with the matching gid:
+          </p>
+          <div className="bg-bg-2 border border-border rounded-md p-3 font-mono text-[10px] text-text-2 space-y-1">
+            <div><span className="text-text-3">Candidates_OD: </span><span className="text-orange">…gid=</span><span className="text-[#3ECBA8]">ODISHA_GID</span><span className="text-orange"> ← replace</span></div>
+            <div><span className="text-text-3">Candidates_RJ: </span><span className="text-orange">…gid=</span><span className="text-[#3ECBA8]">RAJASTHAN_GID</span><span className="text-orange"> ← replace</span></div>
+            <div><span className="text-text-3">Candidates_JH: </span><span className="text-orange">…gid=</span><span className="text-[#3ECBA8]">JHARKHAND_GID</span><span className="text-orange"> ← replace</span></div>
+          </div>
+          <p className="mt-2 text-text-3">Then click Refresh in the sidebar — all three tabs will load and merge automatically.</p>
         </div>
 
         {/* Step 4 — Actuals formulas */}
