@@ -86,16 +86,22 @@ export function SourcesPage({ data, view }: SourcesPageProps) {
                   {[
                     ['Channel', `${s.type}${s.subSource ? ' › ' + s.subSource : ''}`],
                     ['Est. pool', `${Number(s.vol || 0).toLocaleString()} candidates`],
+                    ['Conv. %', s.conv_pct ? `${s.conv_pct}% lead → migrated` : null],
+                    ['Exp. migrations', s.conv_pct ? String(Math.round(Number(s.vol || 0) * Number(s.conv_pct) / 100)) : null],
                     ['Contact', s.contact],
                     ['Districts', s.districts],
                     ['About', s.desc],
                     ['Next action', s.action],
-                  ].map(([key, val]) => (
+                  ].filter(([, val]) => val).map(([key, val]) => (
                     <div key={key} className="flex gap-2 mb-1.5">
                       <span className="text-[11px] text-text-2 min-w-[80px] flex-shrink-0">{key}</span>
                       <span
                         className="text-[11px] leading-snug"
-                        style={key === 'Next action' ? { color: '#E8601C', fontWeight: 500 } : undefined}
+                        style={
+                          key === 'Next action' ? { color: '#E8601C', fontWeight: 500 }
+                          : key === 'Conv. %' || key === 'Exp. migrations' ? { color: '#1ED9BC', fontWeight: 500 }
+                          : undefined
+                        }
                       >
                         {key === 'Est. pool' ? <strong>{val}</strong> : val}
                       </span>

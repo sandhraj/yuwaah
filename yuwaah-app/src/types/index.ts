@@ -44,6 +44,7 @@ export interface Source {
   type: string;
   subSource?: string;
   vol: string;
+  conv_pct?: string;
   contact: string;
   districts: string;
   desc: string;
