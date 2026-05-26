@@ -12,6 +12,7 @@ import { ConversionsPage } from './pages/ConversionsPage';
 import { FieldOpsPage } from './pages/FieldOpsPage';
 import { MatchingPage } from './pages/MatchingPage';
 import { CandidatesPage } from './pages/CandidatesPage';
+import { LeadPlannerPage } from './pages/LeadPlannerPage';
 import { getFunnelPlanned } from './utils';
 import './index.css';
 
@@ -40,6 +41,7 @@ function loadLocalState(): LocalState {
 const PAGE_TITLES: Record<NavTab, string> = {
   overview: 'Project Overview',
   funnel: 'Pipeline Planner',
+  leadplanner: 'Lead Planner',
   sources: 'Source Channels',
   conversions: 'Conversion Ratios',
   fieldops: 'Field Ops & Roles',
@@ -256,6 +258,13 @@ export default function App() {
           />
         )}
         {navTab === 'candidates' && <CandidatesPage data={data} />}
+        {navTab === 'leadplanner' && (
+          <LeadPlannerPage
+            endDate={endDate}
+            setEndDate={handleSetEndDate}
+            view={view}
+          />
+        )}
       </main>
 
       <Toast visible={toastVisible} onHide={() => setToastVisible(false)} />

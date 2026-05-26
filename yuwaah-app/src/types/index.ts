@@ -1,4 +1,4 @@
-export type NavTab = 'overview' | 'funnel' | 'sources' | 'conversions' | 'fieldops' | 'matching' | 'candidates';
+export type NavTab = 'overview' | 'funnel' | 'leadplanner' | 'sources' | 'conversions' | 'fieldops' | 'matching' | 'candidates';
 export type StateView = 'all' | 'rj' | 'od' | 'jh';
 export type FunnelMode = 'planning' | 'actuals';
 export type MatchSubTab = 'match' | 'employers';
