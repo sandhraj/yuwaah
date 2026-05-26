@@ -13,6 +13,7 @@ interface SidebarProps {
 const navItems: { key: NavTab; icon: string; label: string; section: string }[] = [
   { key: 'overview', icon: '🏠', label: 'Project overview', section: 'Project' },
   { key: 'funnel', icon: '📊', label: 'Pipeline planner', section: 'Project' },
+  { key: 'leadplanner', icon: '🎯', label: 'Lead planner', section: 'Project' },
   { key: 'sources', icon: '🗺', label: 'Source channels', section: 'Programme' },
   { key: 'conversions', icon: '📈', label: 'Conversion ratios', section: 'Programme' },
   { key: 'candidates', icon: '🧑‍🤝‍🧑', label: 'Candidate tracker', section: 'Programme' },
