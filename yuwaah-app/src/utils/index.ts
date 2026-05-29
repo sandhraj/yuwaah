@@ -176,8 +176,11 @@ function normState(raw: string): string {
 }
 
 function deriveCandidateStage(r: Record<string, string>): string {
-  const g = (k: string) => (r[k] || '').trim().toLowerCase();
-  const has = (k: string) => (r[k] || '').trim() !== '';
+  // Normalize keys to lowercase so mixed-case sheet headers match correctly
+  const norm: Record<string, string> = {};
+  Object.keys(r).forEach(k => { norm[k.toLowerCase().trim()] = r[k]; });
+  const g = (k: string) => (norm[k] || '').trim().toLowerCase();
+  const has = (k: string) => (norm[k] || '').trim() !== '';
   const cs = g('current stage');
   if (cs === 'migrated' || has('joining date')) return 'migrated';
   if (cs === 'migration stage' || g('offer letter status') === 'received') return 'offer_released';
@@ -261,16 +264,21 @@ export function parseCandidateActuals(
   const hIdx: Record<string, number> = {};
   rows[hi].forEach((h, i) => { if (h?.trim()) hIdx[h.trim().toLowerCase()] = i; });
 
-  const stageCol = hIdx['current stage'] ?? hIdx['current_stage'] ?? fallbackStageCol;
-  const statusCol = hIdx['current status'] ?? hIdx['current_status'] ?? fallbackStatusCol;
+  // Use fallback column indices when header names aren't found
+  const statusCol = hIdx['current status'] ?? hIdx['current_status'] ?? hIdx['status'] ?? fallbackStatusCol;
+
+  // Build headers array once for rowMap construction
+  const headers = rows[hi].map(h => (h || '').trim());
 
   for (let i = hi + 1; i < rows.length; i++) {
     const row = rows[i];
     const status = (row[statusCol] || '').trim();
     if (status.toLowerCase() !== 'active') continue;
-    const stageText = (row[stageCol] || '').trim();
-    const stageKey = STAGE_TEXT_MAP[stageText];
-    if (stageKey) counts[stageKey] = (counts[stageKey] || 0) + 1;
+    // Build a rowMap keyed by original header so deriveCandidateStage can normalize them
+    const rowMap: Record<string, string> = {};
+    headers.forEach((h, ci) => { if (h) rowMap[h] = row[ci]?.trim() || ''; });
+    const stageKey = deriveCandidateStage(rowMap);
+    counts[stageKey] = (counts[stageKey] || 0) + 1;
   }
 
   return counts as Actuals;
