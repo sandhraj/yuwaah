@@ -1,10 +1,10 @@
 import { useState, useCallback } from 'react';
 import type { DataState, GSStatus } from '../types';
-import { SHEET_URLS } from '../constants';
+import { SHEET_URLS, STAGE_KEYS } from '../constants';
 import {
   parseCSV, parseConv, parseTargets,
   parseSources, parseEmployers, parseProfiles, parseAssignments,
-  parseCandidates, parseCandidateActuals, parseWeeklyTargets,
+  parseCandidates, parseWeeklyTargets,
 } from '../utils';
 
 const initialData: DataState = {
@@ -71,18 +71,10 @@ export function useSheets() {
       const rjRows = rjResult.status === 'fulfilled' ? rjResult.value : [];
       const jhRows = jhResult.status === 'fulfilled' ? jhResult.value : [];
 
-      // OD: Stage=AF(31), Status=AG(32)
-      // RJ: Stage=AD(29), Status=AE(30)
-      // JH: Stage=AF(31), Status=AG(32)
-      const actualsOD = parseCandidateActuals(odRows, 31, 32);
-      const actualsRJ = parseCandidateActuals(rjRows, 29, 30);
-      const actualsJH = parseCandidateActuals(jhRows, 31, 32);
-
       const counts = [odResult, rjResult, jhResult].map((r, i) =>
         `${['OD', 'RJ', 'JH'][i]}=${r.status === 'fulfilled' ? r.value.length - 1 : 'skip'}`
       );
       log.push(`Candidate rows ${counts.join(' ')}`);
-      log.push(`Active counts — RJ migrated=${actualsRJ.migrated ?? 0} OD migrated=${actualsOD.migrated ?? 0} JH migrated=${actualsJH.migrated ?? 0}`);
 
       const candidates = [
         ...parseCandidates(odRows),
@@ -90,6 +82,19 @@ export function useSheets() {
         ...parseCandidates(jhRows),
       ];
       log.push(`Tracker candidates: ${candidates.length}`);
+
+      // Derive actuals from parsed candidates — same stage logic as the tracker
+      const mkActuals = (state: string) => {
+        const stageCounts: Record<string, number> = Object.fromEntries(STAGE_KEYS.map(k => [k, 0]));
+        candidates
+          .filter(c => c.state === state && c.currentStatus.toLowerCase() === 'active')
+          .forEach(c => { if (c.stage) stageCounts[c.stage] = (stageCounts[c.stage] || 0) + 1; });
+        return stageCounts;
+      };
+      const actualsRJ = mkActuals('rj');
+      const actualsOD = mkActuals('od');
+      const actualsJH = mkActuals('jh');
+      log.push(`Active counts — RJ migrated=${actualsRJ.migrated ?? 0} OD migrated=${actualsOD.migrated ?? 0} JH migrated=${actualsJH.migrated ?? 0}`);
       log.push(`Sources RJ=${sourcesRJ.length} OD=${sourcesOD.length} JH=${sourcesJH.length}`);
       log.push(`Employers=${employers.length} Profiles=${profiles.length}`);
 
